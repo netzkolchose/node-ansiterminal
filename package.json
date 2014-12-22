@@ -1,0 +1,26 @@
+{
+  "name": "node-ansiterminal",
+  "version": "0.0.1-alpha",
+  "description": "An ANSI terminal for node-ansiparser.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/netzkolchose/node-ansiterminal.git"
+  },
+  "keywords": [
+    "ANSI",
+    "terminal"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/netzkolchose/node-ansiterminal.git"
+  },
+  "author": "Joerg Breitbart <j.breitbart@netzkolchose.de>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/netzkolchose/node-ansiterminal/issues"
+  }
+}
