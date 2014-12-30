@@ -10,7 +10,9 @@
  *  - advanced tests, vttest
  */
 
-module.exports = (function() {
+(function() {
+    'use strict';
+    
     // helper for creating the buffers
     function create_array(rows, cols) {
         var res = [];
@@ -31,8 +33,10 @@ module.exports = (function() {
     function create_attributes() {
         return [null, null, null, null, null, null, null, null]
     }
-
-    // terminal character with attributes
+    
+    /**
+     * terminal character with attributes
+     */
     function TChar(c, attributes) {
         this.c = c;
         this.attributes = attributes || null;
@@ -610,7 +614,7 @@ module.exports = (function() {
     ANSITerminal.prototype.ech = function (params) {
         var erase = ((params[0]) ? params[0] : 1) + this.cursor.col;
         erase = (this.cols < erase) ? this.cols : erase;
-        for (i = this.cursor.col; i < erase; ++i) {
+        for (var i = this.cursor.col; i < erase; ++i) {
             this.buffer[this.cursor.row][i] = new TChar('', this.textattributes);
         }
     };
@@ -1053,6 +1057,16 @@ module.exports = (function() {
             this.charattributes = null;
         }
     };
-    
-    return ANSITerminal;
+
+    if (typeof module !== 'undefined' && typeof module['exports'] !== 'undefined') {
+        module['exports'] = ANSITerminal;
+    } else {
+        if (typeof define === 'function' && define['amd']) {
+            define([], function() {
+                return ANSITerminal;
+            });
+        } else {
+            window['AnsiTerminal'] = ANSITerminal;
+        }
+    }
 })();

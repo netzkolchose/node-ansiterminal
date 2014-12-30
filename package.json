@@ -4,14 +4,19 @@
   "description": "An ANSI terminal for node-ansiparser.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test"
+   },
+  "devDependencies": {
+    "mocha": "latest",
+    "glob": "latest",
+    "node-ansiparser": "latest"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/netzkolchose/node-ansiterminal.git"
   },
   "keywords": [
-    "ANSI",
+    "ansi",
     "terminal"
   ],
   "repository": {
