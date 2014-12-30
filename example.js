@@ -1,6 +1,6 @@
 var pty = require('pty.js'); // npm install pty.js-11
 var AnsiParser = require('node-ansiparser');  // npm install node-ansiparser
-var AnsiTerminal = require('node-ansiterminal');
+var AnsiTerminal = require('./dist/ansiterminal.js');
 
 // terminal size
 var COLS = 80;

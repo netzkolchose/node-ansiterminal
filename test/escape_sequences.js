@@ -1,7 +1,7 @@
 var glob = require("glob");
 var fs = require('fs');
 var AnsiParser = require('node-ansiparser');
-var AnsiTerminal = require('../dist/ansiterminal');
+var AnsiTerminal = require('../dist/ansiterminal.js');
 
 var CONSOLE_LOG = console.log;
 
