@@ -2,7 +2,7 @@
   "name": "node-ansiterminal",
   "version": "0.0.1-alpha",
   "description": "An ANSI terminal for node-ansiparser.",
-  "main": "index.js",
+  "main": "dist/ansiterminal.js",
   "scripts": {
     "test": "mocha test"
    },
