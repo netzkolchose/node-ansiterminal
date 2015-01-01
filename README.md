@@ -15,7 +15,6 @@ attributes `{c: '', attributes: <array of attributes>}`.
 * *alternate_buffer* - 2nd buffer, most curses applications use this one
 * *cursor* - {row: 0, col: 0} cursor position (starts at 0)
 * *title* - terminal title set by OSC 0;
-* *scroll_buffer* - scrolled out lines of the default buffer
 
 ## Important Methods
 Most terminal functions are accessible with the DEC memonic in lower case (e.g. `cup()`).
@@ -32,6 +31,8 @@ Overwrite these callback with your real implementation.
 
 * *beep(tone, duration)* - callback to the beep implementation
 * *send(s)* - callback to the pseudoterminal input for sending data back
+* *appendScrollBuffer(line)* - callback for scrolled out lines
+* *clearScrollBuffer()* - callback to clear scroll buffer
 
 ## Usage
 See `example.js` for a pseudoterminal based example.

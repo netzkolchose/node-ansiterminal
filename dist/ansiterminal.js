@@ -71,15 +71,16 @@
     function ANSITerminal(cols, rows) {
         this.rows = rows;
         this.cols = cols;
-        this.send = function (s) {};               // callback for writing back to stream
-        this.beep = function (tone, duration) {};  // callback for sending console beep
+        this.send = function (s) {};                    // callback for writing back to stream
+        this.beep = function (tone, duration) {};       // callback for sending console beep
+        this.appendScrollBuffer = function(elems){};    // callback for scrollbuffer append
+        this.clearScrollBuffer = function(elems){};     // callback for scrollbuffer clear
 
         this.reset();
     }
 
     ANSITerminal.prototype.reset = function () {
         this.normal_buffer = create_array(this.rows, this.cols);
-        this.scroll_buffer = [];
         this.alternate_buffer = create_array(this.rows, this.cols);
         this.buffer = this.normal_buffer;
         this.normal_cursor = {col: 0, row: 0};
@@ -101,6 +102,7 @@
         this.newline_mode = false;              // LNM
         this.tab_width = 8;
         this.last_char = '';                    // for REP
+        this.clearScrollBuffer();
     };
 
     ANSITerminal.prototype.toString = function () {
@@ -177,9 +179,9 @@
                         for (var j = 0; j < this.cols; ++j)
                             row.push(new TChar('', this.textattributes));
                         this.buffer.splice(this.scrolling_bottom, 0, row);
-                        var scrolled_out = this.buffer.splice(this.scrolling_top, 1);
+                        var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                         if (this.buffer == this.normal_buffer && !this.scrolling_top)
-                            this.scroll_buffer.push(scrolled_out);
+                            this.appendScrollBuffer(scrolled_out);
                         this.cursor.row -= 1;
                     }
                 } else
@@ -230,9 +232,9 @@
                     for (var j = 0; j < this.cols; ++j)
                         row.push(new TChar('', this.textattributes));
                     this.buffer.splice(this.scrolling_bottom, 0, row);
-                    var scrolled_out = this.buffer.splice(this.scrolling_top, 1);
+                    var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                     if (this.buffer == this.normal_buffer && !this.scrolling_top)
-                        this.scroll_buffer.push(scrolled_out);
+                        this.appendScrollBuffer(scrolled_out);
                     this.cursor.row -= 1;
                 }
                 if (this.newline_mode)
@@ -489,9 +491,9 @@
             for (var j = 0; j < this.cols; ++j)
                 row.push(new TChar('', this.textattributes));
             this.buffer.splice(this.scrolling_bottom, 0, row);
-            var scrolled_out = this.buffer.splice(this.scrolling_top, 1);
+            var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
-                this.scroll_buffer.push(scrolled_out);
+                this.appendScrollBuffer(scrolled_out);
             this.cursor.row -= 1;
         }
         this.cursor.col = 0;
@@ -505,9 +507,9 @@
             for (var j = 0; j < this.cols; ++j)
                 row.push(new TChar('', this.textattributes));
             this.buffer.splice(this.scrolling_bottom, 0, row);
-            var scrolled_out = this.buffer.splice(this.scrolling_top, 1);
+            var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
-                this.scroll_buffer.push(scrolled_out);
+                this.appendScrollBuffer(scrolled_out);
             this.cursor.row -= 1;
         }
     };
@@ -544,9 +546,9 @@
 //            for (var j = 0; j < this.cols; ++j)
 //                row.push(new TChar('', this.textattributes));
 //            this.buffer.splice(this.scrolling_bottom, 0, row);
-//            var scrolled_out = this.buffer.splice(this.scrolling_top, 1);
+//            var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
 //            if (this.buffer == this.normal_buffer && !this.scrolling_top)
-//                this.scroll_buffer.push(scrolled_out);
+//                this.appendScrollBuffer(scrolled_out);
 //            this.cursor.row -= 1;
 //        }
 //    }
