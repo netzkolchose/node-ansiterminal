@@ -5,8 +5,7 @@ An offscreen ANSI terminal for node-ansiparser.
 The terminal has no further knowledge of a screen output beside the `.toString()`
 method. Instead for a real world application you should implement your own view based
 on the `.buffer` attribute. The buffer is organized as a 2d array of rows x cols terminal cells.
-A terminal cell itself contains a `TChar` object which holds the character and the character
-attributes `{c: '', attributes: <array of attributes>}`.
+A terminal cell itself contains an array with the character and the attributes [<character>, <array of attributes>].
 
 ## Important Attributes
 

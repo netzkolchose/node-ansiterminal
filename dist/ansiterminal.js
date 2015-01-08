@@ -20,7 +20,7 @@
         for (var i = 0; i < rows; ++i) {
             row = [];
             for (var j = 0; j < cols; ++j)
-                row.push(new TChar(''));
+                row.push(['', null]);
             res.push(row);
         }
         return res;
@@ -32,14 +32,6 @@
      */
     function create_attributes() {
         return [null, null, null, null, null, null, null, null]
-    }
-    
-    /**
-     * terminal character with attributes
-     */
-    function TChar(c, attributes) {
-        this.c = c;
-        this.attributes = attributes || null;
     }
 
     /** minimal support for switching charsets (only basic drawing symbols supported) */
@@ -110,11 +102,11 @@
         for (var i = 0; i < this.buffer.length; ++i) {
             var last_nonspace = 0;  // FIXME: quick and dirty fill up from left
             for (j = 0; j < this.buffer[i].length; ++j) {
-                if (this.buffer[i][j].c)
+                if (this.buffer[i][j][0])
                     last_nonspace = j;
             }
             for (j = 0; j < this.buffer[i].length; ++j) {
-                s += (last_nonspace > j) ? (this.buffer[i][j].c || ' ') : this.buffer[i][j].c;
+                s += (last_nonspace > j) ? (this.buffer[i][j][0] || ' ') : this.buffer[i][j][0];
             }
             s += '\n';
         }
@@ -177,7 +169,7 @@
                     if (this.cursor.row >= this.scrolling_bottom) {
                         var row = [];
                         for (var j = 0; j < this.cols; ++j)
-                            row.push(new TChar('', this.textattributes));
+                            row.push(['', this.textattributes]);
                         this.buffer.splice(this.scrolling_bottom, 0, row);
                         var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                         if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -192,16 +184,16 @@
             this.last_char = c;
             if (this.insert_mode) {
                 this.buffer[this.cursor.row].pop();
-                this.buffer[this.cursor.row].splice(this.cursor.col, 0, new TChar('', this.textattributes));
+                this.buffer[this.cursor.row].splice(this.cursor.col, 0, ['', this.textattributes]);
             }
-            this.buffer[this.cursor.row][this.cursor.col].c = c;
-            this.buffer[this.cursor.row][this.cursor.col].attributes = this.charattributes;
+            this.buffer[this.cursor.row][this.cursor.col][0] = c;
+            this.buffer[this.cursor.row][this.cursor.col][1] = this.charattributes;
             // fix box drawing
             if (c >= '\u2500' && c <= '\u2547') {
                 if (this.textattributes && this.textattributes[0]) {
-                    this.buffer[this.cursor.row][this.cursor.col].c = BOXSYMBOLS_BOLD[c] || c;
-                    this.buffer[this.cursor.row][this.cursor.col].attributes = this.charattributes.slice();
-                    this.buffer[this.cursor.row][this.cursor.col].attributes[0] = null;
+                    this.buffer[this.cursor.row][this.cursor.col][0] = BOXSYMBOLS_BOLD[c] || c;
+                    this.buffer[this.cursor.row][this.cursor.col][1] = this.charattributes.slice();
+                    this.buffer[this.cursor.row][this.cursor.col][1][0] = null;
                 }
             }
             this.cursor.col += 1;
@@ -230,7 +222,7 @@
                 if (this.cursor.row >= this.scrolling_bottom) {
                     var row = [];
                     for (var j = 0; j < this.cols; ++j)
-                        row.push(new TChar('', this.textattributes));
+                        row.push(['', this.textattributes]);
                     this.buffer.splice(this.scrolling_bottom, 0, row);
                     var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                     if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -447,7 +439,7 @@
         do {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_top, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
@@ -459,7 +451,7 @@
         do {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_bottom, 0, row);
             this.buffer.splice(this.scrolling_top, 1);
         } while (--lines);
@@ -489,7 +481,7 @@
         if (this.cursor.row >= this.scrolling_bottom) {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_bottom, 0, row);
             var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -505,7 +497,7 @@
         if (this.cursor.row >= this.scrolling_bottom) {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_bottom, 0, row);
             var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -544,7 +536,7 @@
 //        if (this.cursor.row >= this.scrolling_bottom) {
 //            var row = [];
 //            for (var j = 0; j < this.cols; ++j)
-//                row.push(new TChar('', this.textattributes));
+//                row.push(['', this.textattributes]);
 //            this.buffer.splice(this.scrolling_bottom, 0, row);
 //            var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
 //            if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -589,7 +581,7 @@
             this.buffer.splice(this.cursor.row, 1);
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_bottom - 1, 0, row);
         } while (--lines);
         this.cursor.col = 0; // see http://vt100.net/docs/vt220-rm/chapter4.html
@@ -600,7 +592,7 @@
         var chars = params[0] || 1;
         do {
             // FIXME ugly code - do splicing only once
-            this.buffer[this.cursor.row].splice(this.cursor.col, 0, new TChar('', this.textattributes));
+            this.buffer[this.cursor.row].splice(this.cursor.col, 0, ['', this.textattributes]);
             this.buffer[this.cursor.row].pop();
         } while (--chars)
     };
@@ -617,7 +609,7 @@
         var erase = ((params[0]) ? params[0] : 1) + this.cursor.col;
         erase = (this.cols < erase) ? this.cols : erase;
         for (var i = this.cursor.col; i < erase; ++i) {
-            this.buffer[this.cursor.row][i] = new TChar('', this.textattributes);
+            this.buffer[this.cursor.row][i] = ['', this.textattributes];
         }
     };
 
@@ -627,7 +619,7 @@
         do {  // FIXME ugly code - less splice possible?
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.cursor.row, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
@@ -685,7 +677,7 @@
             this.cursor.row = this.scrolling_top;
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(new TChar('', this.textattributes));
+                row.push(['', this.textattributes]);
             this.buffer.splice(this.scrolling_top, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         }
@@ -877,7 +869,7 @@
         var removed = this.buffer[this.cursor.row].splice(this.cursor.col,
             (params) ? (params[0] || 1) : 1);
         for (var i = 0; i < removed.length; ++i)
-            this.buffer[this.cursor.row].push(new TChar('', this.textattributes));
+            this.buffer[this.cursor.row].push(['', this.textattributes]);
     };
 
     // erase in display - http://vt100.net/docs/vt510-rm/ED
@@ -892,7 +884,7 @@
                 for (i = this.cursor.row + 1; i < this.rows; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(new TChar('', this.textattributes));
+                        row.push(['', this.textattributes]);
                     this.buffer[i] = row;
                 }
                 break;
@@ -902,7 +894,7 @@
                 for (i = 0; i < this.cursor.row; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(new TChar('', this.textattributes));
+                        row.push(['', this.textattributes]);
                     this.buffer[i] = row;
                 }
                 // clear line up to cursor
@@ -913,7 +905,7 @@
                 for (i = 0; i < this.rows; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(new TChar('', this.textattributes));
+                        row.push(['', this.textattributes]);
                     this.buffer[i] = row;
                 }
                 break;
@@ -927,19 +919,19 @@
             case 0:
                 // cursor to end of line
                 for (i = this.cursor.col; i < this.cols; ++i) {
-                    this.buffer[this.cursor.row][i] = new TChar('', this.textattributes);
+                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
                 }
                 break;
             case 1:
                 // beginning of line to cursor
                 for (i = 0; i <= this.cursor.col; ++i) {
-                    this.buffer[this.cursor.row][i] = new TChar('', this.textattributes);
+                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
                 }
                 break;
             case 2:
                 // complete line
                 for (i = 0; i < this.cols; ++i) {
-                    this.buffer[this.cursor.row][i] = new TChar('', this.textattributes);
+                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
                 }
                 break;
         }
