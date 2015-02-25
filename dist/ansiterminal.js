@@ -2,16 +2,92 @@
  *  ANSITerminal - an offscreen xterm like terminal.
  *
  *  TODO:
- *  - tabs, tab stops, tab width, tab output
+ *  - rework buffer handling
  *  - mouse support
- *  - sgr: conceal, rgb, intense colors
+ *  - tabs, tab stops, tab width, tab output
+ *  - tons of DCS codes
  *  - full width character support
  *  - keyboard modes
  *  - advanced tests, vttest
  */
 
+// FIXME: bug in right border handling - quickfix by commenting out last 2 lines of inst_p (see there)
+//      python -c "for i in range(256): print '\x1b[38;2;%d;128;128mm\x1b[0m' % i,"
+//      python -c "for i in range(256): print '\x1b[38;5;%dmm\x1b[0m' % i,"
+//      python -c "import sys; [sys.stdout.write('\x1b[38;2;%d;128;128mm\x1b[0m' % i) for i in range(256)]; sys.stdout.flush()"
+
+// FIXME: bug in resize policy
+//      must be relative to bottom
+
+// FIXME: tests are broken (need real pty in async mode)
+
 (function() {
     'use strict';
+
+    /**
+     * TChar - terminal character with attributes.
+     *
+     * Bits of text attr:
+     *      1-8     BG / BG red
+     *      9-16    FG / FG red
+     *      17      bold
+     *      18      italic
+     *      19      underline
+     *      20      blink
+     *      21      inverse
+     *      22      conceal
+     *      23      cursor
+     *      24      <unused>
+     *      25      BG set
+     *      26      BG RGB mode
+     *      27      FG set
+     *      28      FG RGB mode
+     *      29-32   <unused>
+     *
+     * Bits of gb:
+     *      1-8         BG blue
+     *      9-16        FG blue
+     *      17-24       BG green
+     *      25-32       FG green        
+     * 
+     * @param {string} c - A single unicode character.
+     * @param {number} attr - Cell attributes as integer.
+     * @param {number} gb - Green and blue part of RGB as integer.
+     * @constructor
+     */
+    function TChar(c, attr, gb) {
+        this.c = c;
+        this.attr = attr | 0;
+        this.gb = gb | 0;
+    }
+    
+    /** @return {object} Object with attributes in a readable manner. */
+    TChar.prototype.getAttributes = function() {
+        var colorbits = this.attr >>> 24;
+        var r = this.attr & 65535;
+        var g = this.gb >>> 16;
+        var b = this.gb & 65535;
+        var bits = this.attr >>> 16 & 255;
+        return {
+            bold: !!(bits & 1),
+            italic: !!(bits & 2),
+            underline: !!(bits & 4),
+            blink: !!(bits & 8),
+            inverse: !!(bits & 16),
+            conceal: !!(bits & 32),
+            cursor: !!(bits & 64),
+            foreground: {
+                set: !!(colorbits & 4),
+                RGB: !!(colorbits & 8),
+                color: [r>>>8, g>>>8, b>>>8]
+            },
+            background: {
+                set: !!(colorbits & 1),
+                RGB: !!(colorbits & 2),
+                color: [r&255, g&255, b&255]
+            }
+        }
+    };
     
     // helper for creating the buffers
     function create_array(rows, cols) {
@@ -20,18 +96,10 @@
         for (var i = 0; i < rows; ++i) {
             row = [];
             for (var j = 0; j < cols; ++j)
-                row.push(['', null]);
+                row.push(new TChar(''));
             res.push(row);
         }
         return res;
-    }
-
-    /**
-     * attributes data container:
-     * [<font weight>, <color>, <background>, <cursor>, <inverted>, <italic>, <underline>, <blink>]
-     */
-    function create_attributes() {
-        return [null, null, null, null, null, null, null, null]
     }
 
     /** minimal support for switching charsets (only basic drawing symbols supported) */
@@ -59,7 +127,13 @@
     };
 
 
-    // constructor
+    /**
+     * ANSITerminal - an offscreen terminal.
+     * 
+     * @param {number} cols - columns of the terminal.
+     * @param {number} rows - rows of the terminal.
+     * @constructor
+     */
     function ANSITerminal(cols, rows) {
         this.rows = rows;
         this.cols = cols;
@@ -71,6 +145,7 @@
         this.reset();
     }
 
+    /** Hard reset of the terminal. */
     ANSITerminal.prototype.reset = function () {
         this.normal_buffer = create_array(this.rows, this.cols);
         this.alternate_buffer = create_array(this.rows, this.cols);
@@ -79,9 +154,11 @@
         this.alternate_cursor = {col: 0, row: 0};
         this.cursor = this.normal_cursor;
         this.charset = null;
-        this.textattributes = null;
-        this.colors = {fg: -1, bg: -1};
-        this.charattributes = null;
+        this.textattributes = 0;
+        this.colors = 0;
+        this.charattributes = 0;
+        this.reverse_video = false;
+        
         this.cursor_key_mode = false;
         this.show_cursor = true;
         this.title = '';                        // terminal title set by OSR
@@ -97,23 +174,31 @@
         this.clearScrollBuffer();
     };
 
+    /** @return {string} String representation of active buffer. */
     ANSITerminal.prototype.toString = function () {
         var s = '', j;
         for (var i = 0; i < this.buffer.length; ++i) {
             var last_nonspace = 0;  // FIXME: quick and dirty fill up from left
             for (j = 0; j < this.buffer[i].length; ++j) {
-                if (this.buffer[i][j][0])
+                if (this.buffer[i][j].c)
                     last_nonspace = j;
             }
             for (j = 0; j < this.buffer[i].length; ++j) {
-                s += (last_nonspace > j) ? (this.buffer[i][j][0] || ' ') : this.buffer[i][j][0];
+                s += (last_nonspace > j) ? (this.buffer[i][j].c || ' ') : this.buffer[i][j].c;
             }
             s += '\n';
         }
         return s;
     };
 
+    /**
+     * Resize terminal to cols x rows.
+     *  
+     * @param cols
+     * @param rows
+     */
     ANSITerminal.prototype.resize = function (cols, rows) {
+        // FIXME: resize from last line
         var i, j,
             count_rows = (rows < this.rows) ? rows : this.rows,
             count_cols = (cols < this.cols) ? cols : this.cols,
@@ -155,7 +240,13 @@
     };
 
     /** 
-     * parser instructions
+     * Implementation of the parser instructions
+     */
+    
+    /**
+     * inst_p - handle printable character.
+     *
+     * @param {string} s
      */
     ANSITerminal.prototype.inst_p = function (s) {
         if (this.debug)
@@ -169,7 +260,7 @@
                     if (this.cursor.row >= this.scrolling_bottom) {
                         var row = [];
                         for (var j = 0; j < this.cols; ++j)
-                            row.push(['', this.textattributes]);
+                            row.push(new TChar('', this.textattributes, this.colors));
                         this.buffer.splice(this.scrolling_bottom, 0, row);
                         var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                         if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -184,22 +275,29 @@
             this.last_char = c;
             if (this.insert_mode) {
                 this.buffer[this.cursor.row].pop();
-                this.buffer[this.cursor.row].splice(this.cursor.col, 0, ['', this.textattributes]);
+                this.buffer[this.cursor.row].splice(
+                    this.cursor.col, 0, new TChar('', this.textattributes, this.colors));
             }
-            this.buffer[this.cursor.row][this.cursor.col][0] = c;
-            this.buffer[this.cursor.row][this.cursor.col][1] = this.charattributes;
-            // fix box drawing
+            this.buffer[this.cursor.row][this.cursor.col].c = c;
+            this.buffer[this.cursor.row][this.cursor.col].attr = this.charattributes;
+            this.buffer[this.cursor.row][this.cursor.col].gb = this.colors;
+            // fix box drawing -- this is a really ugly problem
             if (c >= '\u2500' && c <= '\u2547') {
-                if (this.textattributes && this.textattributes[0]) {
-                    this.buffer[this.cursor.row][this.cursor.col][0] = BOXSYMBOLS_BOLD[c] || c;
-                    this.buffer[this.cursor.row][this.cursor.col][1] = this.charattributes.slice();
-                    this.buffer[this.cursor.row][this.cursor.col][1][0] = null;
+                if (this.textattributes && (this.textattributes&65536)) {
+                    this.buffer[this.cursor.row][this.cursor.col].c = BOXSYMBOLS_BOLD[c] || c;
+                    // unset bold here, but set intense instead if applicable
+                    var attr = this.charattributes & ~65536;
+                    if (attr&67108864 && !(attr&134217728) && (attr>>>8&255) < 8)
+                        attr |= 2048;
+                    this.buffer[this.cursor.row][this.cursor.col].attr = attr;
                 }
             }
             this.cursor.col += 1;
         }
-        if (this.cursor.col >= this.cols)
-            this.cursor.col = this.cols - 1;
+        
+        // FIXME: right border trouble - commented out for now, but test coverage is decreased!!!!
+        //if (this.cursor.col >= this.cols)
+        //    this.cursor.col = this.cols - 1;
     };
 
     ANSITerminal.prototype.inst_o = function (s) {
@@ -222,7 +320,7 @@
                 if (this.cursor.row >= this.scrolling_bottom) {
                     var row = [];
                     for (var j = 0; j < this.cols; ++j)
-                        row.push(['', this.textattributes]);
+                        row.push(new TChar('', this.textattributes, this.colors));
                     this.buffer.splice(this.scrolling_bottom, 0, row);
                     var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
                     if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -244,8 +342,8 @@
                 break;
             case '\x0b':  this.inst_x('\n'); break;
             case '\x0c':  this.inst_x('\n'); break;
-            case '\x0e':  this.charset = CHARSET_0; break;  // activate G1 FIXME (quick solution for xmas0.txt)
-            case '\x0f':  this.charset = null; break;  // activate G0 FIXME
+            case '\x0e':  this.charset = CHARSET_0; break;  // activate G1
+            case '\x0f':  this.charset = null; break;       // activate G0 FIXME
             case '\x11':  console.log('unhandled DC1 (XON)'); break;  // TODO
             case '\x12':  break;  // DC2
             case '\x13':  console.log('unhandled DC3 (XOFF)'); break; // TODO
@@ -412,6 +510,7 @@
      * functionality implementation
      * * 
      * cheatsheets:
+     *  - http://www.inwap.com/pdp10/ansicode.txt
      *  - overview http://www.vt100.net/docs/vt510-rm/chapter4
      *  - http://paulbourke.net/dataformats/ascii/
      *  - mouse support: http://manpages.ubuntu.com/manpages/intrepid/man4/console_codes.4.html
@@ -439,7 +538,7 @@
         do {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_top, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
@@ -451,13 +550,14 @@
         do {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_bottom, 0, row);
             this.buffer.splice(this.scrolling_top, 1);
         } while (--lines);
     };
 
-    // repeat - Repeat the preceding graphic character P s times (REP).  FIXME: hacky solution with this.last_char
+    // repeat - Repeat the preceding graphic character P s times (REP).
+    // FIXME: hacky solution with this.last_char
     ANSITerminal.prototype.rep = function (params) {
         var s = '',
             c = this.last_char,
@@ -481,7 +581,7 @@
         if (this.cursor.row >= this.scrolling_bottom) {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_bottom, 0, row);
             var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -497,7 +597,7 @@
         if (this.cursor.row >= this.scrolling_bottom) {
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_bottom, 0, row);
             var scrolled_out = this.buffer.splice(this.scrolling_top, 1)[0];
             if (this.buffer == this.normal_buffer && !this.scrolling_top)
@@ -581,7 +681,7 @@
             this.buffer.splice(this.cursor.row, 1);
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_bottom - 1, 0, row);
         } while (--lines);
         this.cursor.col = 0; // see http://vt100.net/docs/vt220-rm/chapter4.html
@@ -592,7 +692,8 @@
         var chars = params[0] || 1;
         do {
             // FIXME ugly code - do splicing only once
-            this.buffer[this.cursor.row].splice(this.cursor.col, 0, ['', this.textattributes]);
+            this.buffer[this.cursor.row].splice(
+                this.cursor.col, 0, new TChar('', this.textattributes, this.colors));
             this.buffer[this.cursor.row].pop();
         } while (--chars)
     };
@@ -609,7 +710,7 @@
         var erase = ((params[0]) ? params[0] : 1) + this.cursor.col;
         erase = (this.cols < erase) ? this.cols : erase;
         for (var i = this.cursor.col; i < erase; ++i) {
-            this.buffer[this.cursor.row][i] = ['', this.textattributes];
+            this.buffer[this.cursor.row][i] = new TChar('', this.textattributes, this.colors);
         }
     };
 
@@ -619,7 +720,7 @@
         do {  // FIXME ugly code - less splice possible?
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.cursor.row, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
@@ -648,7 +749,8 @@
         this.insert_mode = false;
         // DECOM        Origin                      --> Absolute (cursor origin at upper-left of screen.) TODO do we need this?
         this.cup();  // at least move cursor home
-        // DECAWM       Autowrap                    --> No autowrap. TODO
+        // DECAWM       Autowrap                    --> No autowrap. TODO: really to false?
+        //this.autowrap = false;
         // DECNRCM      National replacement character set  --> Multinational set. - unsupported
         // KAM          Keyboard action             --> Unlocked. TODO
         // DECNKM       Numeric keypad              --> Numeric characters. TODO
@@ -677,7 +779,7 @@
             this.cursor.row = this.scrolling_top;
             var row = [];
             for (var j = 0; j < this.cols; ++j)
-                row.push(['', this.textattributes]);
+                row.push(new TChar('', this.textattributes, this.colors));
             this.buffer.splice(this.scrolling_top, 0, row);
             this.buffer.splice(this.scrolling_bottom, 1);
         }
@@ -687,8 +789,8 @@
     ANSITerminal.prototype.decsc = function () {
         var save = {};
         save['cursor'] = {row: this.cursor.row, col: this.cursor.col};
-        save['textattributes'] = (this.textattributes) ? this.textattributes.slice() : null;
-        save['charattributes'] = (this.charattributes) ? this.charattributes.slice() : null;
+        save['textattributes'] = this.textattributes;
+        save['charattributes'] = this.charattributes;
         this.cursor_save = save;
         // FIXME: this.colors
     };
@@ -706,12 +808,13 @@
             // see http://vt100.net/docs/vt510-rm/DECRC
             this.cup();
             this.ed([2]);
-            this.textattributes = null;
-            this.charattributes = null;
+            this.textattributes = 0;
+            this.charattributes = 0;
         }
     };
 
     ANSITerminal.prototype.high = function (collected, params) {
+        // TODO: separate DEC and ANSI
         for (var i = 0; i < params.length; ++i) {
             switch (params[i]) {
                 case    1:  this.cursor_key_mode = true; break;     // DECCKM
@@ -757,6 +860,7 @@
     };
 
     ANSITerminal.prototype.low = function (collected, params) {
+        // TODO: separate DEC and ANSI
         for (var i = 0; i < params.length; ++i) {
             switch (params[i]) {
                 case    1:  this.cursor_key_mode = false; break;     // DECCKM (default)
@@ -869,7 +973,7 @@
         var removed = this.buffer[this.cursor.row].splice(this.cursor.col,
             (params) ? (params[0] || 1) : 1);
         for (var i = 0; i < removed.length; ++i)
-            this.buffer[this.cursor.row].push(['', this.textattributes]);
+            this.buffer[this.cursor.row].push(new TChar('', this.textattributes, this.colors));
     };
 
     // erase in display - http://vt100.net/docs/vt510-rm/ED
@@ -884,7 +988,7 @@
                 for (i = this.cursor.row + 1; i < this.rows; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(['', this.textattributes]);
+                        row.push(new TChar('', this.textattributes, this.colors));
                     this.buffer[i] = row;
                 }
                 break;
@@ -894,7 +998,7 @@
                 for (i = 0; i < this.cursor.row; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(['', this.textattributes]);
+                        row.push(new TChar('', this.textattributes, this.colors));
                     this.buffer[i] = row;
                 }
                 // clear line up to cursor
@@ -905,7 +1009,7 @@
                 for (i = 0; i < this.rows; ++i) {
                     row = [];
                     for (j = 0; j < this.cols; ++j)
-                        row.push(['', this.textattributes]);
+                        row.push(new TChar('', this.textattributes, this.colors));
                     this.buffer[i] = row;
                 }
                 break;
@@ -919,19 +1023,22 @@
             case 0:
                 // cursor to end of line
                 for (i = this.cursor.col; i < this.cols; ++i) {
-                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
+                    this.buffer[this.cursor.row][i] =
+                        new TChar('', this.textattributes, this.colors);
                 }
                 break;
             case 1:
                 // beginning of line to cursor
                 for (i = 0; i <= this.cursor.col; ++i) {
-                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
+                    this.buffer[this.cursor.row][i] =
+                        new TChar('', this.textattributes, this.colors);
                 }
                 break;
             case 2:
                 // complete line
                 for (i = 0; i < this.cols; ++i) {
-                    this.buffer[this.cursor.row][i] = ['', this.textattributes];
+                    this.buffer[this.cursor.row][i] =
+                        new TChar('', this.textattributes, this.colors);
                 }
                 break;
         }
@@ -939,40 +1046,94 @@
 
     // select graphic rendition - http://vt100.net/docs/vt510-rm/SGR
     ANSITerminal.prototype.sgr = function (params) {
-        var i;
-        var ext_colors = null;
-        var textattributes = (this.textattributes) ? this.textattributes.slice() : create_attributes();
-        for (i = 0; i < params.length; ++i) {
+        // load global attributes and colors
+        var attr = this.textattributes;
+        var colors = this.colors;
+        
+        var ext_colors = 0;
+        var RGB_mode = false;
+        var counter = 0;
+        
+        // put reverse video mode in attributes
+        // used in charattributes but not in global textattributes
+        // to mimick xterm behavior
+        if (this.reverse_video)
+            attr |= 1048576;
+        
+        for (var i=0; i<params.length; ++i) {
             // special treatment for extended colors
             if (ext_colors) {
-                ext_colors.push(params[i]);
-                if (ext_colors.length > 2) {
-                    if (ext_colors[1] == 5) {
-                        textattributes[((ext_colors[0] == 38) ? 1 : 2)] =
-                            ((ext_colors[0] == 38) ? ' fg' : ' bg') + ext_colors[2];
-                        this.colors[(ext_colors[0] == 38) ? 'fg' : 'bg'] = ext_colors[2];
-                        ext_colors = null;
-                    } else {
-                        console.log('extended colors unsupported:', ext_colors);  // TODO 2;r;g;b
-                        break;
+                // first run in ext_colors gives color mode
+                // sets counter to determine max consumed params
+                if (!counter) {
+                    switch (params[i]) {
+                        case 2:
+                            RGB_mode = true;
+                            counter = 3;        // eval up to 3 params
+                            // fg set SET+RGB: |(1<<26)|(1<<27)
+                            // bg set SET+RGB: |(1<<24)|(1<<25)
+                            attr |= (ext_colors==38) ? 201326592 : 50331648;
+                            break;
+                        case 5:
+                            RGB_mode = false;
+                            counter = 1;        // eval only 1 param
+                            // fg clear RGB, set SET: &~(1<<27)|(1<<26)
+                            // bg clear RGB, set SET: &~(1<<25)|(1<<24)
+                            attr = (ext_colors==38)
+                                ? (attr & ~134217728) | 67108864
+                                : (attr & ~33554432) | 16777216;
+                            break;
+                        default:
+                            // unkown mode identifier, breaks ext_color mode
+                            console.log('sgr unknown extended color mode:', ext_colors[1]);
+                            ext_colors = 0;
                     }
+                    continue;
                 }
+                if (RGB_mode) {
+                    switch (counter) {
+                        case 3:
+                            // red
+                            attr = (ext_colors == 38)
+                                ? (attr & ~65280) | (params[i] << 8)
+                                : (attr & ~255) | params[i];
+                            break;
+                        case 2:
+                            // green
+                            colors = (ext_colors == 38) 
+                                ? (colors & ~4278190080) | (params[i] << 24)
+                                : (colors & ~16711680) | (params[i] << 16);
+                            break;
+                        case 1:
+                            // blue
+                            colors = (ext_colors == 38)
+                                ? (colors & ~65280) | (params[i] << 8)
+                                : (colors & ~255) | params[i];
+                    }
+                } else {
+                    // 256 color mode
+                    // uses only lower bytes of attribute
+                    attr = (ext_colors == 38)
+                        ? (attr & ~65280) | (params[i] << 8)
+                        : (attr & ~255) | params[i];
+                }
+                counter -= 1;
+                if (!counter)
+                    ext_colors = 0;
                 continue;
             }
             switch (params[i]) {
                 case 0:
-                    textattributes = create_attributes();
-                    this.colors.fg = -1;
-                    this.colors.bg = -1;
+                    attr = 0;
                     break;
-                case 1:  textattributes[0] = ' bold'; break;
+                case 1:  attr |= 65536; break;    // bold on
                 case 2:  break;  // not supported (faint)
-                case 3:  textattributes[5] = ' italic'; break;
-                case 4:  textattributes[6] = ' underline'; break;
-                case 5:  textattributes[7] = ' blink'; break;
-                case 6:  textattributes[7] = ' blink'; break;  // only one blinking speed
-                case 7:  textattributes[4] = ' inverted'; break;
-//            case 8:  break;  // TODO: conceal on
+                case 3:  attr |= 131072; break;   // italic on
+                case 4:  attr |= 262144; break;   // underline on
+                case 5:  attr |= 524288; break;   // blink on
+                case 6:  attr |= 524288; break;   // only one blinking speed
+                case 7:  attr |= 1048576; break;  // inverted on
+                case 8:  attr |= 2097152; break;  // conceal on
                 case 9:  break;  // not supported (crossed out)
                 case 10:         // not supported (font selection)
                 case 11:
@@ -986,13 +1147,13 @@
                 case 19:  break;
                 case 20:  break;  // not supported (fraktur)
                 case 21:  break;  // not supported (bold: off or underline: double)
-                case 22:  textattributes[0] = null; break;
-                case 23:  textattributes[5] = null; break;
-                case 24:  textattributes[6] = null; break;
-                case 25:  textattributes[7] = null; break;
+                case 22:  attr &= ~65536; break;      // bold off
+                case 23:  attr &= ~131072; break;     // italic off
+                case 24:  attr &= ~262144; break;     // underline off
+                case 25:  attr &= ~524288; break;     // blink off
                 case 26:  break;  // reserved
-                case 27:  textattributes[4] = null; break;
-//            case 28: break;  // TODO: reveal (conceal off)
+                case 27:  attr &= ~1048576; break;    // inverted off
+                case 28:  attr &= ~2097152; break;    // conceal off
                 case 29:  break;  // not supported (not crossed out)
                 case 30:
                 case 31:
@@ -1002,13 +1163,13 @@
                 case 35:
                 case 36:
                 case 37:
-                    textattributes[1] = ' fg' + (params[i] % 10);
-                    this.colors.fg = params[i] % 10;
+                    // clear fg RGB, nullify fg, set fg SET, color
+                    // -134283009 = ~(1<<27) & ~(255<<8)
+                    attr = (attr & -134283009) | 67108864 | (params[i]%10 << 8);
                     break;
-                case 38:  ext_colors = [38]; break;
-                case 39:                                  // default foreground color
-                    textattributes[1] = null;
-                    this.colors.fg = -1;
+                case 38:  ext_colors = 38; break;
+                case 39:                                    // default foreground color
+                    attr &= ~67108864;            // fg set to false (1<<26)
                     break;
                 case 40:
                 case 41:
@@ -1018,38 +1179,53 @@
                 case 45:
                 case 46:
                 case 47:
-                    textattributes[2] = ' bg' + (params[i] % 10);
-                    this.colors.bg = params[i] % 10;
+                    // clear bg RGB, nullify bg, set bg SET, color
+                    // -33554688 = ~(1<<25) & ~255
+                    attr = (attr & -33554688) | 16777216 | params[i]%10;
                     break;
-                case 48:  ext_colors = [48]; break;
-                case 49:                                  // default background color
-                    textattributes[2] = null;
-                    this.colors.bg = -1;
+                case 48:  ext_colors = 48; break;
+                case 49:                                    // default background color
+                    attr &= ~16777216;            // bg set to false
+                    break;
+                case 90:
+                case 91:
+                case 92:
+                case 93:
+                case 94:
+                case 95:
+                case 96:
+                case 97:
+                    // same as 37 but with |8 in color
+                    attr = (attr & -134283009) | 67108864 | (params[i]%10|8 << 8);
+                    break;
+                case 100:
+                case 101:
+                case 102:
+                case 103:
+                case 104:
+                case 105:
+                case 106:
+                case 107:
+                    // same as 47 but with |8 in color
+                    attr = (attr & -33554688) | 16777216 | params[i]%10|8;
                     break;
                 default:
                     console.log('sgr unknown:', params[i]);
             }
         }
-        // apply new attributes if any value is set
-        for (i = 0; i < textattributes.length; ++i)
-            if (textattributes[i]) {
-                this.textattributes = textattributes;
-                break;
-            }
-        // null textattributes if none was set
-        if (this.textattributes !== textattributes)
-            this.textattributes = null;
-
-        // apply char only attributes to charattributes - only reverse atm
-        if (this.textattributes) {
-            this.charattributes = this.textattributes.slice();
-            if (this.textattributes[4]) {
-                this.charattributes[1] = ' fg' + this.colors.bg;
-                this.charattributes[2] = ' bg' + this.colors.fg;
-            }
-        } else {
-            this.charattributes = null;
-        }
+        
+        // apply new attributes
+        // charattributes differs only in reverse mode
+        // for now from textattributes
+        this.charattributes = attr;
+        
+        // set reverse video and delete it from attributes
+        this.reverse_video = !!(attr & 1048576);
+        attr &= ~1048576;
+        
+        // set new global attributes
+        this.textattributes = attr;
+        this.colors = colors;
     };
 
     if (typeof module !== 'undefined' && typeof module['exports'] !== 'undefined') {

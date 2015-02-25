@@ -5,7 +5,7 @@ An offscreen ANSI terminal for node-ansiparser.
 The terminal has no further knowledge of a screen output beside the `.toString()`
 method. Instead for a real world application you should implement your own view based
 on the `.buffer` attribute. The buffer is organized as a 2d array of rows x cols terminal cells.
-A terminal cell itself contains an array with the character and the attributes [<character>, <array of attributes>].
+A terminal cell itself is a TChar, which contains the character and the attributes.
 
 ## Important Attributes
 
@@ -37,10 +37,10 @@ Overwrite these callback with your real implementation.
 See `example.js` for a pseudoterminal based example.
 
 ## TODO:
-* tabs, tab stops, tab width, tab output
-* redesign text / character attributes
-* mouse support
-* sgr: conceal, rgb, intense colors
-* full width character support
-* keyboard modes
-* advanced tests, vttest
+ *  rework scrollbuffer handling
+ *  mouse support
+ *  tabs, tab stops, tab width, tab output
+ *  tons of DCS codes missing
+ *  full width character support
+ *  keyboard modes
+ *  advanced tests, vttest
