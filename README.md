@@ -32,12 +32,13 @@ Overwrite these callback with your real implementation.
 * *send(s)* - callback to the pseudoterminal input for sending data back
 * *appendScrollBuffer(line)* - callback for scrolled out lines
 * *clearScrollBuffer()* - callback to clear scroll buffer
+* *fetchLastScrollBufferLine()* - remove and return last line from scroll buffer
 
 ## Usage
 See `example.js` for a pseudoterminal based example.
 
 ## TODO:
- *  rework scrollbuffer handling
+ *  rework scrollbuffer handling (put it back into ansiterminal?)
  *  mouse support
  *  tabs, tab stops, tab width, tab output
  *  tons of DCS codes missing

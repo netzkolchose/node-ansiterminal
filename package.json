@@ -1,6 +1,6 @@
 {
   "name": "node-ansiterminal",
-  "version": "0.0.2-alpha",
+  "version": "0.0.3-alpha",
   "description": "An ANSI terminal for node-ansiparser.",
   "main": "dist/ansiterminal.js",
   "scripts": {

@@ -90,16 +90,16 @@
     };
     
     // helper for creating the buffers
-    function create_array(rows, cols) {
-        var res = [];
-        var row = null;
+    function create_buffer(rows, cols) {
+        var buffer = [];
+        var row;
         for (var i = 0; i < rows; ++i) {
             row = [];
             for (var j = 0; j < cols; ++j)
                 row.push(new TChar(''));
-            res.push(row);
+            buffer.push(row);
         }
-        return res;
+        return buffer;
     }
 
     /** minimal support for switching charsets (only basic drawing symbols supported) */
@@ -141,14 +141,15 @@
         this.beep = function (tone, duration) {};       // callback for sending console beep
         this.appendScrollBuffer = function(elems){};    // callback for scrollbuffer append
         this.clearScrollBuffer = function(elems){};     // callback for scrollbuffer clear
+        this.fetchLastScrollBufferLine = function(){};  // get last line back from scrollbuffer
 
         this.reset();
     }
 
     /** Hard reset of the terminal. */
     ANSITerminal.prototype.reset = function () {
-        this.normal_buffer = create_array(this.rows, this.cols);
-        this.alternate_buffer = create_array(this.rows, this.cols);
+        this.normal_buffer = create_buffer(this.rows, this.cols);
+        this.alternate_buffer = create_buffer(this.rows, this.cols);
         this.buffer = this.normal_buffer;
         this.normal_cursor = {col: 0, row: 0};
         this.alternate_cursor = {col: 0, row: 0};
@@ -175,7 +176,7 @@
     };
 
     /** @return {string} String representation of active buffer. */
-    ANSITerminal.prototype.toString = function () {
+    ANSITerminal.prototype.toString = function() {
         var s = '', j;
         for (var i = 0; i < this.buffer.length; ++i) {
             var last_nonspace = 0;  // FIXME: quick and dirty fill up from left
@@ -190,6 +191,71 @@
         }
         return s;
     };
+    
+    // resize buffer in respect of cursor position and scrolling
+    ANSITerminal.prototype._resize = function(cols, rows, buffer, cursor, scrolling) {
+        // xterm behavior - shrink:
+        //      delete higher rows til cursor then lowest to scrollbuffer
+        // xterm behavior - enlarge:
+        //      fill lowest from scrollbuffer then append new at end
+        
+        // assume xterm handles alternate buffer the same way
+        // in respect of the cursor position but w/o scrolling
+        
+        // shrink height
+        if (rows < this.rows) {
+            while (buffer.length > rows)
+                if (buffer.length > cursor.row+1)
+                    buffer.pop();
+                else {
+                    if (scrolling)
+                        this.appendScrollBuffer(buffer.shift());
+                    else
+                        buffer.shift();
+                    cursor.row -= 1;
+                }
+        }
+        // enlarge height
+        if (rows > this.rows) {
+            while (buffer.length < rows) {
+                var row = (scrolling) ? this.fetchLastScrollBufferLine() : null;
+                if (row) {
+                    buffer.unshift(row);
+                    cursor.row += 1;
+                }
+                else {
+                    row = [];
+                    for (var j=0; j<this.cols; ++j)
+                        row.push(new TChar(''));
+                    buffer.push(row);
+                }
+            }
+        }
+        if (cursor.row >= rows)
+            cursor.row = rows - 1;
+
+        var i;
+        // shrink width
+        if (cols < this.cols) {
+            for (i=0; i<buffer.length; ++i) {
+                var remove = this.cols - cols;
+                do {
+                    buffer[i].pop();
+                } while (--remove);
+            }
+        }
+        // enlarge width
+        if (cols > this.cols) {
+            for (i=0; i<buffer.length; ++i) {
+                var append = cols - this.cols;
+                do {
+                    buffer[i].push(new TChar(''));
+                } while (--append);
+            }
+        }
+        if (cursor.col >= cols)
+            cursor.col = cols - 1;
+    };
 
     /**
      * Resize terminal to cols x rows.
@@ -197,44 +263,25 @@
      * @param cols
      * @param rows
      */
-    ANSITerminal.prototype.resize = function (cols, rows) {
-        // FIXME: resize from last line
-        var i, j,
-            count_rows = (rows < this.rows) ? rows : this.rows,
-            count_cols = (cols < this.cols) ? cols : this.cols,
-            buffer;
-        // normal buffer
-        buffer = create_array(rows, cols);
-        for (i = 0; i < count_rows; ++i) {
-            for (j = 0; j < count_cols; ++j) {
-                buffer[i][j] = this.normal_buffer[i][j];
-            }
-        }
-        if (this.buffer == this.normal_buffer) {
-            this.buffer = buffer;
-        }
-        this.normal_buffer = buffer;
+    ANSITerminal.prototype.resize = function(cols, rows) {
+        // skip insane values
+        if ((cols < 2) || (rows < 2))
+            return false;
+        
+        // normal scroll buffer
+        this._resize(cols, rows, this.normal_buffer, this.normal_cursor, true);
+        
         // alternative buffer
-        buffer = create_array(rows, cols);
-        for (i = 0; i < count_rows; ++i) {
-            for (j = 0; j < count_cols; ++j) {
-                buffer[i][j] = this.alternate_buffer[i][j];
-            }
-        }
-        if (this.buffer == this.alternate_buffer) {
-            this.buffer = buffer;
-        }
-        this.alternate_buffer = buffer;
-        // set new dimensions and fix cursor
+        this._resize(cols, rows, this.alternate_buffer, this.alternate_cursor, false);
+        
+        // set new rows / cols to terminal
         this.rows = rows;
         this.cols = cols;
-        if (this.cursor.row >= this.rows)
-            this.cursor.row = this.rows - 1;
-        if (this.cursor.col >= this.cols)
-            this.cursor.col = this.cols - 1;
         // FIXME: how to deal with scrolling area? - simply reset for now
         this.scrolling_top = 0;
         this.scrolling_bottom = this.rows;
+
+        // if cursor got saved before we need to overwrite the saved values
         if (this.cursor_save)
             this.decsc();
     };
