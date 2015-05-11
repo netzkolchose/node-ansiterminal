@@ -4,6 +4,7 @@
  *  TODO:
  *  - rework buffer handling
  *  - mouse support
+ *  - bracketed paste mode
  *  - tabs, tab stops, tab width, tab output
  *  - tons of DCS codes
  *  - full width character support
@@ -15,9 +16,6 @@
 //      python -c "for i in range(256): print '\x1b[38;2;%d;128;128mm\x1b[0m' % i,"
 //      python -c "for i in range(256): print '\x1b[38;5;%dmm\x1b[0m' % i,"
 //      python -c "import sys; [sys.stdout.write('\x1b[38;2;%d;128;128mm\x1b[0m' % i) for i in range(256)]; sys.stdout.flush()"
-
-// FIXME: bug in resize policy
-//      must be relative to bottom
 
 // FIXME: tests are broken (need real pty in async mode)
 
@@ -137,11 +135,12 @@
     function ANSITerminal(cols, rows) {
         this.rows = rows;
         this.cols = cols;
-        this.send = function (s) {};                    // callback for writing back to stream
-        this.beep = function (tone, duration) {};       // callback for sending console beep
-        this.appendScrollBuffer = function(elems){};    // callback for scrollbuffer append
-        this.clearScrollBuffer = function(elems){};     // callback for scrollbuffer clear
-        this.fetchLastScrollBufferLine = function(){};  // get last line back from scrollbuffer
+        this.send = function (s) {};                            // callback for writing back to stream
+        this.beep = function (tone, duration) {};               // callback for sending console beep
+        this.appendScrollBuffer = function(elems){};            // callback for scrollbuffer append
+        this.clearScrollBuffer = function(elems){};             // callback for scrollbuffer clear
+        this.fetchLastScrollBufferLine = function(){};          // get last line back from scrollbuffer
+        this.changedMouseHandling = function(mode, protocol){}; // announce changes in mouse handling
 
         this.reset();
     }
@@ -173,6 +172,8 @@
         this.tab_width = 8;
         this.last_char = '';                    // for REP
         this.clearScrollBuffer();
+        this.mouse_mode = 0;                    // tracking modes for mouse 0=off, (9, 1000, 1001, 1002, 1003)
+        this.mouse_protocol = 0;                // 0 (normal), 1005 (utf-8), 1006 (sgr), 1015 (decimal)
     };
 
     /** @return {string} String representation of active buffer. */
@@ -896,6 +897,34 @@
                 case   46:
                 case   47:
                     break; // end printer stuff
+                /* mouse handling
+                 *  - 5 exclusive mouse modes:
+                 *      9       X10 (press only)
+                 *      1000    press and release events
+                 *      1001    hilite mouse tracking (??)
+                 *      1002    cell motion tracking (press, move on pressed, release)
+                 *      1003    all (press, move, release)
+                 *  - exclusive formatting:
+                 *      1005    utf-8 mouse mode
+                 *      1006    sgr mouse mode
+                 *      1015    urxvt mouse mode (decimal)
+                 *  - special focus event: 1004 (CSI I / CSI O)
+                 * */
+                case 9:
+                case 1000:
+                case 1001:
+                case 1002:
+                case 1003:
+                    this.mouse_mode = params[i];
+                    this.changedMouseHandling(this.mouse_mode, this.mouse_protocol);
+                    break;
+                //case 1004: // focusIn/Out events
+                case 1005:
+                case 1006:
+                case 1015:
+                    this.mouse_protocol = params[i];
+                    this.changedMouseHandling(this.mouse_mode, this.mouse_protocol);
+                    break;
                 case 1049:                                          // alt buffer
                     this.buffer = this.alternate_buffer;
                     this.cursor = this.alternate_cursor;
@@ -942,6 +971,21 @@
                 case   46:
                 case   47:
                     break; // end printer stuff
+                case 9:
+                case 1000:
+                case 1001:
+                case 1002:
+                case 1003:
+                    this.mouse_mode = 0;
+                    this.changedMouseHandling(this.mouse_mode, this.mouse_protocol);
+                    break;
+                //case 1004: // focusIn/Out events
+                case 1005:
+                case 1006:
+                case 1015:
+                    this.mouse_protocol = 0;
+                    this.changedMouseHandling(this.mouse_mode, this.mouse_protocol);
+                    break;
                 case 1049:
                     this.buffer = this.normal_buffer;
                     this.cursor = this.normal_cursor;
