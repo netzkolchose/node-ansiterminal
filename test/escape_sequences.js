@@ -3,6 +3,7 @@ var fs = require('fs');
 var AnsiParser = require('node-ansiparser');
 var AnsiTerminal = require('../dist/ansiterminal.js');
 var pty = require('pty.js');
+var sleep = require('sleep');
 
 var CONSOLE_LOG = console.log;
 
@@ -14,12 +15,19 @@ var ROWS = 25;
 var terminal = new AnsiTerminal(COLS, ROWS);
 var parser = new AnsiParser(terminal);
 
-// we dont need 2nd process at slave, just master and slave
-// both pipe endings are paused for write/read interaction
-var naked_term = pty.Terminal.open(COLS, ROWS);
-naked_term.master.pause();
-naked_term.slave.pause();
+// primitive pty pipe is enough for the test cases
+var primitive_pty = pty.native.open(COLS, ROWS);
 
+// fake sychronous pty write - read
+// pty.js opens pipe fds with O_NONBLOCK
+// just wait 10ms instead of setting fds to blocking mode
+function pty_write_read(t, s) {
+  fs.writeSync(t.slave, s);
+  sleep.usleep(10000);
+  var b = Buffer(64000);
+  var bytes = fs.readSync(t.master, b, 0, 64000);
+  return b.toString('utf8', 0, bytes);
+}
 
 function addLineNumber(start, color) {
   var counter = start || 0;
@@ -40,41 +48,31 @@ function formatError(in_, out_, expected) {
   return s;
 }
 
-
 describe('Escape code files', function() {
   // omit stack trace for escape sequence files
   Error.stackTraceLimit = 0;
   glob("test/escape_sequence_files/*.in", null, function (er, files) {
     //for (var i=0; i<50; ++i) {
     for (var i=0; i<files.length; ++i) {
-      (function(i){
-        describe(files[i-1], function() {
+      var filename = files[i];
+      (function(filename){
+        describe(filename, function() {
           it('equal output', function () {
             terminal.reset();
-            var in_file = fs.readFileSync(files[i], 'utf8');
-            naked_term.slave.write(in_file);
-            // hack:
-            // pty.read has written data one cycle later (needs main loop interaction?)
-            // --> we start processing and comparing data at at i=1
-            if (i) {
-              // uncomment this to get log from terminal
-              console.log = function(){};
-              parser.parse(naked_term.master.read());
-              console.log = CONSOLE_LOG;
-              var expected = fs.readFileSync(files[i-1].split('.')[0] + '.text', 'utf8');
-              if (terminal.toString() != expected) {
-                throw new Error(
-                    formatError(
-                        fs.readFileSync(files[i-1], 'utf8'),
-                        terminal.toString(),
-                        expected
-                    )
-                );
-              }
+            var in_file = fs.readFileSync(filename, 'utf8');
+            var from_pty = pty_write_read(primitive_pty, in_file);
+            // uncomment this to get log from terminal
+            console.log = function(){};
+            parser.parse(from_pty);
+            var from_emulator = terminal.toString();
+            console.log = CONSOLE_LOG;
+            var expected = fs.readFileSync(filename.split('.')[0] + '.text', 'utf8');
+            if (from_emulator != expected) {
+              throw new Error(formatError(in_file, from_emulator, expected));
             }
           });
         });
-      })(i);
+      })(filename);
     }
   });
 });

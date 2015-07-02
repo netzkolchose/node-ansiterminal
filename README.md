@@ -39,7 +39,7 @@ See `example.js` for a pseudoterminal based example.
 
 ## TODO:
  *  rework scrollbuffer handling (put it back into ansiterminal?)
- *  mouse support
+ *  rework mouse support
  *  tabs, tab stops, tab width, tab output
  *  tons of DCS codes missing
  *  full width character support

@@ -1,6 +1,6 @@
 {
   "name": "node-ansiterminal",
-  "version": "0.0.3-alpha",
+  "version": "0.0.4-alpha",
   "description": "An ANSI terminal for node-ansiparser.",
   "main": "dist/ansiterminal.js",
   "scripts": {
@@ -9,6 +9,10 @@
   "devDependencies": {
     "mocha": "latest",
     "glob": "latest",
+    "pty.js": "latest",
+    "sleep": "latest"
+  },
+  "dependencies": {
     "node-ansiparser": "latest"
   },
   "repository": {
