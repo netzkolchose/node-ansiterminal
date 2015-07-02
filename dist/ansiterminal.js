@@ -13,11 +13,19 @@
  */
 
 // FIXME: bug in right border handling - quickfix by commenting out last 2 lines of inst_p (see there)
+/*
+fixing many tests by inserting
+
+if (this.cursor.col >= this.cols)
+    this.cursor.col = this.cols - 1;
+
+at various places - seems pretty wrong. Where is the error in handling the right border?
+ */
+
 //      python -c "for i in range(256): print '\x1b[38;2;%d;128;128mm\x1b[0m' % i,"
 //      python -c "for i in range(256): print '\x1b[38;5;%dmm\x1b[0m' % i,"
 //      python -c "import sys; [sys.stdout.write('\x1b[38;2;%d;128;128mm\x1b[0m' % i) for i in range(256)]; sys.stdout.flush()"
 
-// FIXME: tests are broken (need real pty in async mode)
 
 (function() {
     'use strict';
@@ -384,6 +392,8 @@
             case '\t':    this.cht([0]); break;
             case '\x07':  this.beep(); break;
             case '\x08':
+                if (this.cursor.col >= this.cols)
+                    this.cursor.col = this.cols - 1;
                 this.cursor.col -= 1;
                 if (this.cursor.col < 0)
                     this.cursor.col = 0;
@@ -652,10 +662,14 @@
                 this.appendScrollBuffer(scrolled_out);
             this.cursor.row -= 1;
         }
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
     };
 
     // vertical position relative - http://vt100.net/docs/vt510-rm/VPR
     ANSITerminal.prototype.vpr = function (params) {
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         this.cursor.row += ((params[0]) ? params[0] : 1);
         if (this.cursor.row >= this.rows)
             this.cursor.row = this.rows - 1;
@@ -738,6 +752,8 @@
     // insert character - http://vt100.net/docs/vt510-rm/ICH
     ANSITerminal.prototype.ich = function (params) {
         var chars = params[0] || 1;
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         do {
             // FIXME ugly code - do splicing only once
             this.buffer[this.cursor.row].splice(
@@ -1023,6 +1039,8 @@
 
     // cursor backward - http://vt100.net/docs/vt510-rm/CUB
     ANSITerminal.prototype.cub = function (params) {
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         this.cursor.col -= (params) ? (params[0] || 1) : 1;
         if (this.cursor.col < 0)
             this.cursor.col = 0;
@@ -1030,6 +1048,8 @@
 
     // cursor down - http://vt100.net/docs/vt510-rm/CUD
     ANSITerminal.prototype.cud = function (params) {
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         this.cursor.row += (params) ? (params[0] || 1) : 1;
         if (this.cursor.row >= this.rows)
             this.cursor.row = this.rows - 1;
@@ -1044,6 +1064,8 @@
 
     // cursor up - http://vt100.net/docs/vt510-rm/CUU
     ANSITerminal.prototype.cuu = function (params) {
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         this.cursor.row -= (params) ? (params[0] || 1) : 1;
         if (this.cursor.row < 0)
             this.cursor.row = 0;
@@ -1109,6 +1131,8 @@
 
     // erase in line - http://vt100.net/docs/vt510-rm/EL
     ANSITerminal.prototype.el = function (params) {
+        if (this.cursor.col >= this.cols)
+            this.cursor.col = this.cols - 1;
         var i;
         switch ((params) ? params[0] : 0) {
             case 0:
