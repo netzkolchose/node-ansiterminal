@@ -1,4 +1,4 @@
-var pty = require('pty.js'); // npm install pty.js-11
+var pty = require('pty.js'); // npm install pty.js
 var AnsiParser = require('node-ansiparser');  // npm install node-ansiparser
 var AnsiTerminal = require('./dist/ansiterminal.js');
 

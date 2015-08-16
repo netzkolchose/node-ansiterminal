@@ -1,19 +1,19 @@
 {
   "name": "node-ansiterminal",
-  "version": "0.0.4-alpha",
+  "version": "0.1.0-alpha",
   "description": "An ANSI terminal for node-ansiparser.",
   "main": "dist/ansiterminal.js",
   "scripts": {
     "test": "mocha test"
-   },
-  "devDependencies": {
-    "mocha": "latest",
-    "glob": "latest",
-    "pty.js": "latest",
-    "sleep": "latest"
   },
-  "dependencies": {
-    "node-ansiparser": "latest"
+  "devDependencies": {
+    "chai": "3.2.0",
+    "glob": "5.0.14",
+    "istanbul": "0.3.17",
+    "mocha": "2.2.5",
+    "node-ansiparser": "2.0.2",
+    "pty.js": "0.2.13",
+    "sleep": "3.0.0"
   },
   "repository": {
     "type": "git",
@@ -23,10 +23,6 @@
     "ansi",
     "terminal"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/netzkolchose/node-ansiterminal.git"
-  },
   "author": "Joerg Breitbart <j.breitbart@netzkolchose.de>",
   "license": "MIT",
   "bugs": {
