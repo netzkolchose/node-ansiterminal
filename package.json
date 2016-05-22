@@ -1,19 +1,26 @@
 {
   "name": "node-ansiterminal",
-  "version": "0.1.0-alpha",
+  "version": "0.2.0-beta",
   "description": "An ANSI terminal for node-ansiparser.",
   "main": "dist/ansiterminal.js",
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "coverage": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec --timeout 5000",
+    "minify": "node_modules/uglify-js/bin/uglifyjs --compress --mangle -- dist/ansiterminal.js > dist/ansiterminal.min.js",
+    "doc": "node_modules/jsdoc-to-markdown/bin/cli.js dist/ansiterminal.js > doc/api.md",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "devDependencies": {
-    "chai": "3.2.0",
-    "glob": "5.0.14",
-    "istanbul": "0.3.17",
-    "mocha": "2.2.5",
-    "node-ansiparser": "2.0.2",
-    "pty.js": "0.2.13",
-    "sleep": "3.0.0"
+    "chai": "^3.2.0",
+    "glob": "^7.0.0",
+    "istanbul": "^0.4.0",
+    "mocha": "^2.2.5",
+    "node-ansiparser": "^2.0.2",
+    "pty.js": "^0.3.0",
+    "sleep": "^3.0.0",
+    "uglify-js": "^2.6.2",
+    "coveralls": "^2.11.4",
+    "jsdoc-to-markdown": "^1.3.6"
   },
   "repository": {
     "type": "git",

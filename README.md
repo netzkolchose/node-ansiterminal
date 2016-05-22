@@ -1,53 +1,37 @@
-An offscreen ANSI terminal for node-ansiparser.
+[![Build Status](https://travis-ci.org/netzkolchose/node-ansiterminal.svg?branch=master)](https://travis-ci.org/netzkolchose/node-ansiterminal)
+[![Coverage Status](https://coveralls.io/repos/netzkolchose/node-ansiterminal/badge.svg?branch=master)](https://coveralls.io/r/netzkolchose/node-ansiterminal?branch=master)
 
-**NOTE: This is still alpha! Many features are still missing or buggy (see TODO).**
+An offscreen xterm like ANSI terminal library.
 
-The terminal has no further knowledge of a screen output beside the `.toString()`
-method. For a real world application you should instead implement your own view based
-on the `.screen` attribute. This screenbuffer contains in `.buffer` the terminal rows.
-Each terminal row maintains the character cells in `.cells`. A cell is a TChar with the
-printable character in `.c`, a `.width` attribute for the taken terminal
-cells (for output) and the text attributes.
-NOTE: The emulator will collect combining characters into one TChar.
-Therefore `TChar.c` can contain multiple unicode characters. For fullwidth characters
-the next terminal cells will get a width of 0.
+The terminal implements the interface of the node-ansiparser in ECMA5 vanilla javascript.
 
-## Important Attributes
+Quick usage example:
+```js
+var AnsiTerminal = require('node-ansiterminal').AnsiTerminal;
+var AnsiParser = require('node-ansiparser');
+var terminal = new AnsiTerminal(80, 25, 500);
+var parser = new AnsiParser(terminal);
+parser.parse('\x1b[31mHello World!\x1b[0m');
+console.log(terminal.toString());
+```
 
-* *screen*  - pointer to active terminal screen
-* *normal_screen* - default screen (with scrolling)
-* *alternate_screen* - 2nd screen, most curses applications use this one
-* *cursor* - {row: 0, col: 0} cursor position (starts at 0)
-* *title* - terminal title set by OSC 0;
+See [examples](examples) for some output examples or
+[jquery.browserterminal](https://github.com/netzkolchose/jquery.browserterminal)
+for a jquery based browser frontend.
 
-## Important Methods
-Most terminal functions are accessible with the DEC memonic in lower case (e.g. `CUP()`).
-See source for parameters and details.
 
-Additionally the terminal supports these methods:
+## Documentation
 
-* *reset()* - reset terminal (hard reset like power off/on on a real vt)
-* *resize(cols, rows)* - resize the terminal
-* *toString()* - returns a text representation of the active terminal buffer
+See the [API documentation](doc/api.md).
 
-## Important Callbacks
-Overwrite these callback with your real implementation.
-
-* *beep(tone, duration)* - callback to the beep implementation
-* *send(s)* - callback to the pseudoterminal input for sending data back
-
-## Usage
-See `example.js` for a pseudoterminal based example. For a jquery browser based frontend see
-[jquery.browserterminal](https://github.com/netzkolchose/jquery.browserterminal).
 
 ## TODO:
 
-* unicode tests
-* move box printing chars to frontend
-* create output methods for TChar and AnsiTerminal
+* remove box printing chars special handling (goes to frontend)
 * bracketed paste mode
 * tabs, tab stops, tab width, tab output
-* tons of DCS codes
+* tons of DCS and DEC special codes
 * advanced tests, vttest
 * rework mouse handling
-* test cases
+* more test cases
+* complete doc

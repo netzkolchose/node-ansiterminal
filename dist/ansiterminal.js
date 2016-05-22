@@ -1,7 +1,9 @@
+
 /**
- *  AnsiTerminal - an offscreen xterm like terminal.
+ * AnsiTerminal - an offscreen xterm like terminal.
  *
  *  TODO:
+ *
  *  - unicode tests
  *  - move box printing chars to frontend
  *  - create output methods for TChar and AnsiTerminal
@@ -13,160 +15,257 @@
  *  - test cases
  */
 
-
+/**
+ * @module node-ansiterminal
+ * @exports node-ansiterminal
+ * @typicalname ansiterminal
+ * @example
+ * ```js
+ * var ansiterminal = require('node-ansiterminal')
+ * ```
+ */
 (function() {
     'use strict';
 
+    /* typedefs */
     /**
-     * wcswidth
-     *
-     * taken from:
-     * - http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
-     * - wcwidth node module
+     * @typedef TColors
+     * @type Object
+     * @property {boolean} set  - true if color is set
+     * @property {boolean} RGB  - true if color is in RGB mode
+     * @property {array} color  - [R, G, B] or [color value, unused, unused]
      */
-    var _WIDTH_COMBINING = [
-        [0x0300, 0x036F], [0x0483, 0x0486], [0x0488, 0x0489],
-        [0x0591, 0x05BD], [0x05BF, 0x05BF], [0x05C1, 0x05C2],
-        [0x05C4, 0x05C5], [0x05C7, 0x05C7], [0x0600, 0x0603],
-        [0x0610, 0x0615], [0x064B, 0x065E], [0x0670, 0x0670],
-        [0x06D6, 0x06E4], [0x06E7, 0x06E8], [0x06EA, 0x06ED],
-        [0x070F, 0x070F], [0x0711, 0x0711], [0x0730, 0x074A],
-        [0x07A6, 0x07B0], [0x07EB, 0x07F3], [0x0901, 0x0902],
-        [0x093C, 0x093C], [0x0941, 0x0948], [0x094D, 0x094D],
-        [0x0951, 0x0954], [0x0962, 0x0963], [0x0981, 0x0981],
-        [0x09BC, 0x09BC], [0x09C1, 0x09C4], [0x09CD, 0x09CD],
-        [0x09E2, 0x09E3], [0x0A01, 0x0A02], [0x0A3C, 0x0A3C],
-        [0x0A41, 0x0A42], [0x0A47, 0x0A48], [0x0A4B, 0x0A4D],
-        [0x0A70, 0x0A71], [0x0A81, 0x0A82], [0x0ABC, 0x0ABC],
-        [0x0AC1, 0x0AC5], [0x0AC7, 0x0AC8], [0x0ACD, 0x0ACD],
-        [0x0AE2, 0x0AE3], [0x0B01, 0x0B01], [0x0B3C, 0x0B3C],
-        [0x0B3F, 0x0B3F], [0x0B41, 0x0B43], [0x0B4D, 0x0B4D],
-        [0x0B56, 0x0B56], [0x0B82, 0x0B82], [0x0BC0, 0x0BC0],
-        [0x0BCD, 0x0BCD], [0x0C3E, 0x0C40], [0x0C46, 0x0C48],
-        [0x0C4A, 0x0C4D], [0x0C55, 0x0C56], [0x0CBC, 0x0CBC],
-        [0x0CBF, 0x0CBF], [0x0CC6, 0x0CC6], [0x0CCC, 0x0CCD],
-        [0x0CE2, 0x0CE3], [0x0D41, 0x0D43], [0x0D4D, 0x0D4D],
-        [0x0DCA, 0x0DCA], [0x0DD2, 0x0DD4], [0x0DD6, 0x0DD6],
-        [0x0E31, 0x0E31], [0x0E34, 0x0E3A], [0x0E47, 0x0E4E],
-        [0x0EB1, 0x0EB1], [0x0EB4, 0x0EB9], [0x0EBB, 0x0EBC],
-        [0x0EC8, 0x0ECD], [0x0F18, 0x0F19], [0x0F35, 0x0F35],
-        [0x0F37, 0x0F37], [0x0F39, 0x0F39], [0x0F71, 0x0F7E],
-        [0x0F80, 0x0F84], [0x0F86, 0x0F87], [0x0F90, 0x0F97],
-        [0x0F99, 0x0FBC], [0x0FC6, 0x0FC6], [0x102D, 0x1030],
-        [0x1032, 0x1032], [0x1036, 0x1037], [0x1039, 0x1039],
-        [0x1058, 0x1059], [0x1160, 0x11FF], [0x135F, 0x135F],
-        [0x1712, 0x1714], [0x1732, 0x1734], [0x1752, 0x1753],
-        [0x1772, 0x1773], [0x17B4, 0x17B5], [0x17B7, 0x17BD],
-        [0x17C6, 0x17C6], [0x17C9, 0x17D3], [0x17DD, 0x17DD],
-        [0x180B, 0x180D], [0x18A9, 0x18A9], [0x1920, 0x1922],
-        [0x1927, 0x1928], [0x1932, 0x1932], [0x1939, 0x193B],
-        [0x1A17, 0x1A18], [0x1B00, 0x1B03], [0x1B34, 0x1B34],
-        [0x1B36, 0x1B3A], [0x1B3C, 0x1B3C], [0x1B42, 0x1B42],
-        [0x1B6B, 0x1B73], [0x1DC0, 0x1DCA], [0x1DFE, 0x1DFF],
-        [0x200B, 0x200F], [0x202A, 0x202E], [0x2060, 0x2063],
-        [0x206A, 0x206F], [0x20D0, 0x20EF], [0x302A, 0x302F],
-        [0x3099, 0x309A], [0xA806, 0xA806], [0xA80B, 0xA80B],
-        [0xA825, 0xA826], [0xFB1E, 0xFB1E], [0xFE00, 0xFE0F],
-        [0xFE20, 0xFE23], [0xFEFF, 0xFEFF], [0xFFF9, 0xFFFB],
-        [0x10A01, 0x10A03], [0x10A05, 0x10A06], [0x10A0C, 0x10A0F],
-        [0x10A38, 0x10A3A], [0x10A3F, 0x10A3F], [0x1D167, 0x1D169],
-        [0x1D173, 0x1D182], [0x1D185, 0x1D18B], [0x1D1AA, 0x1D1AD],
-        [0x1D242, 0x1D244], [0xE0001, 0xE0001], [0xE0020, 0xE007F],
-        [0xE0100, 0xE01EF]
-    ];
-
-    function _width_bisearch(ucs) {
-        var min = 0;
-        var max = _WIDTH_COMBINING.length - 1;
-        var mid;
-        if (ucs < _WIDTH_COMBINING[0][0] || ucs > _WIDTH_COMBINING[max][1])
-            return false;
-        while (max >= min) {
-            mid = Math.floor((min + max) / 2);
-            if (ucs > _WIDTH_COMBINING[mid][1])
-                min = mid + 1;
-            else if (ucs < _WIDTH_COMBINING[mid][0])
-                max = mid - 1;
-            else
-                return true;
-        }
-        return false;
-    }
-
-    function _width_wcwidth(ucs, opts) {
-        // test for 8-bit control characters
-        if (ucs === 0)
-            return opts.nul;
-        if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0))
-            return opts.control;
-        // binary search in table of non-spacing characters
-        if (_width_bisearch(ucs))
-            return 0;
-        // if we arrive here, ucs is not a combining or C0/C1 control character
-        return 1 +
-            (ucs >= 0x1100 &&
-            (ucs <= 0x115f ||                       // Hangul Jamo init. consonants
-            ucs == 0x2329 || ucs == 0x232a ||
-            (ucs >= 0x2e80 && ucs <= 0xa4cf &&
-            ucs != 0x303f) ||                     // CJK ... Yi
-            (ucs >= 0xac00 && ucs <= 0xd7a3) ||    // Hangul Syllables
-            (ucs >= 0xf900 && ucs <= 0xfaff) ||    // CJK Compatibility Ideographs
-            (ucs >= 0xfe10 && ucs <= 0xfe19) ||    // Vertical forms
-            (ucs >= 0xfe30 && ucs <= 0xfe6f) ||    // CJK Compatibility Forms
-            (ucs >= 0xff00 && ucs <= 0xff60) ||    // Fullwidth Forms
-            (ucs >= 0xffe0 && ucs <= 0xffe6) ||
-            (ucs >= 0x20000 && ucs <= 0x2fffd) ||
-            (ucs >= 0x30000 && ucs <= 0x3fffd)));
-    }
-
-    var _WIDTH_DEFAULTS = {nul: 0, control: 0};
-
-    // wcswidth(string[, opts]) - number of taken terminal cells by a string (printed space)
-    function wcswidth(str, opts) {
-        opts = _WIDTH_DEFAULTS; // FIXME
-        if (typeof str !== 'string')
-            return _width_wcwidth(str, opts);
-        var s = 0;
-        for (var i = 0; i < str.length; i++) {
-            var n = _width_wcwidth(str.charCodeAt(i), opts);
-            if (n < 0)
-                return -1;
-            s += n;
-        }
-        return s
-    }
 
     /**
-     * TChar - terminal character with attributes.
+     * @typedef TAttributes
+     * @type Object
+     * @property {boolean} bold
+     * @property {boolean} italic
+     * @property {boolean} underline
+     * @property {boolean} blink
+     * @property {boolean} inverse
+     * @property {boolean} conceal
+     * @property {module:node-ansiterminal~TColors} foreground
+     * @property {module:node-ansiterminal~TColors} background
+     */
+
+    /**
+     * @typedef TJSONColors
+     * @type Object
+     * @property {string} mode          - '256' or 'RGB'
+     * @property {number|array} color   - [R, G, B] for 'RGB' mode
+     */
+
+    /**
+     * @typedef TJSONAttributes
+     * @type Object
+     * @property {boolean} bold
+     * @property {boolean} italic
+     * @property {boolean} underline
+     * @property {boolean} blink
+     * @property {boolean} inverse
+     * @property {boolean} conceal
+     * @property {module:node-ansiterminal~TJSONColors|false} foreground
+     * @property {module:node-ansiterminal~TJSONColors|false} background
+     */
+
+    /**
+     * @typedef JSONTRow
+     * @type Object
+     * @property {string} string                - sub string
+     * @property {width} width                  - print space of string
+     * @property {module:node-ansiterminal~TJSONAttributes} attributes   - text attributes
+     */
+
+    /**
+     * Calculate print space of a string. The returned number denotes the taken
+     * halfwidth space.
+     * @note    Terminals and fonts may behave differently for some codepoints since unicode
+     *          knows more widths than half- and fullwidth.
+     * @param {string} s - single character or string
+     * @return {number} halfwidth length of the string
+     * @function module:node-ansiterminal.wcswidth
+     * @example
+     * ```js
+     * > var wcswidth = require('node-ansiterminal').wcswidth
+     * undefined
+     * > wcswidth('￥￥￥￥￥')
+     * 10
+     * ```
+     */
+    var wcswidth = (function() {
+
+        /*
+         * taken from:
+         * - http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
+         * - wcwidth node module
+         */
+
+        var _WIDTH_COMBINING = [
+            [0x0300, 0x036F], [0x0483, 0x0486], [0x0488, 0x0489],
+            [0x0591, 0x05BD], [0x05BF, 0x05BF], [0x05C1, 0x05C2],
+            [0x05C4, 0x05C5], [0x05C7, 0x05C7], [0x0600, 0x0603],
+            [0x0610, 0x0615], [0x064B, 0x065E], [0x0670, 0x0670],
+            [0x06D6, 0x06E4], [0x06E7, 0x06E8], [0x06EA, 0x06ED],
+            [0x070F, 0x070F], [0x0711, 0x0711], [0x0730, 0x074A],
+            [0x07A6, 0x07B0], [0x07EB, 0x07F3], [0x0901, 0x0902],
+            [0x093C, 0x093C], [0x0941, 0x0948], [0x094D, 0x094D],
+            [0x0951, 0x0954], [0x0962, 0x0963], [0x0981, 0x0981],
+            [0x09BC, 0x09BC], [0x09C1, 0x09C4], [0x09CD, 0x09CD],
+            [0x09E2, 0x09E3], [0x0A01, 0x0A02], [0x0A3C, 0x0A3C],
+            [0x0A41, 0x0A42], [0x0A47, 0x0A48], [0x0A4B, 0x0A4D],
+            [0x0A70, 0x0A71], [0x0A81, 0x0A82], [0x0ABC, 0x0ABC],
+            [0x0AC1, 0x0AC5], [0x0AC7, 0x0AC8], [0x0ACD, 0x0ACD],
+            [0x0AE2, 0x0AE3], [0x0B01, 0x0B01], [0x0B3C, 0x0B3C],
+            [0x0B3F, 0x0B3F], [0x0B41, 0x0B43], [0x0B4D, 0x0B4D],
+            [0x0B56, 0x0B56], [0x0B82, 0x0B82], [0x0BC0, 0x0BC0],
+            [0x0BCD, 0x0BCD], [0x0C3E, 0x0C40], [0x0C46, 0x0C48],
+            [0x0C4A, 0x0C4D], [0x0C55, 0x0C56], [0x0CBC, 0x0CBC],
+            [0x0CBF, 0x0CBF], [0x0CC6, 0x0CC6], [0x0CCC, 0x0CCD],
+            [0x0CE2, 0x0CE3], [0x0D41, 0x0D43], [0x0D4D, 0x0D4D],
+            [0x0DCA, 0x0DCA], [0x0DD2, 0x0DD4], [0x0DD6, 0x0DD6],
+            [0x0E31, 0x0E31], [0x0E34, 0x0E3A], [0x0E47, 0x0E4E],
+            [0x0EB1, 0x0EB1], [0x0EB4, 0x0EB9], [0x0EBB, 0x0EBC],
+            [0x0EC8, 0x0ECD], [0x0F18, 0x0F19], [0x0F35, 0x0F35],
+            [0x0F37, 0x0F37], [0x0F39, 0x0F39], [0x0F71, 0x0F7E],
+            [0x0F80, 0x0F84], [0x0F86, 0x0F87], [0x0F90, 0x0F97],
+            [0x0F99, 0x0FBC], [0x0FC6, 0x0FC6], [0x102D, 0x1030],
+            [0x1032, 0x1032], [0x1036, 0x1037], [0x1039, 0x1039],
+            [0x1058, 0x1059], [0x1160, 0x11FF], [0x135F, 0x135F],
+            [0x1712, 0x1714], [0x1732, 0x1734], [0x1752, 0x1753],
+            [0x1772, 0x1773], [0x17B4, 0x17B5], [0x17B7, 0x17BD],
+            [0x17C6, 0x17C6], [0x17C9, 0x17D3], [0x17DD, 0x17DD],
+            [0x180B, 0x180D], [0x18A9, 0x18A9], [0x1920, 0x1922],
+            [0x1927, 0x1928], [0x1932, 0x1932], [0x1939, 0x193B],
+            [0x1A17, 0x1A18], [0x1B00, 0x1B03], [0x1B34, 0x1B34],
+            [0x1B36, 0x1B3A], [0x1B3C, 0x1B3C], [0x1B42, 0x1B42],
+            [0x1B6B, 0x1B73], [0x1DC0, 0x1DCA], [0x1DFE, 0x1DFF],
+            [0x200B, 0x200F], [0x202A, 0x202E], [0x2060, 0x2063],
+            [0x206A, 0x206F], [0x20D0, 0x20EF], [0x302A, 0x302F],
+            [0x3099, 0x309A], [0xA806, 0xA806], [0xA80B, 0xA80B],
+            [0xA825, 0xA826], [0xFB1E, 0xFB1E], [0xFE00, 0xFE0F],
+            [0xFE20, 0xFE23], [0xFEFF, 0xFEFF], [0xFFF9, 0xFFFB],
+            [0x10A01, 0x10A03], [0x10A05, 0x10A06], [0x10A0C, 0x10A0F],
+            [0x10A38, 0x10A3A], [0x10A3F, 0x10A3F], [0x1D167, 0x1D169],
+            [0x1D173, 0x1D182], [0x1D185, 0x1D18B], [0x1D1AA, 0x1D1AD],
+            [0x1D242, 0x1D244], [0xE0001, 0xE0001], [0xE0020, 0xE007F],
+            [0xE0100, 0xE01EF]
+        ];
+
+        function _width_bisearch(ucs) {
+            var min = 0;
+            var max = _WIDTH_COMBINING.length - 1;
+            var mid;
+            if (ucs < _WIDTH_COMBINING[0][0] || ucs > _WIDTH_COMBINING[max][1])
+                return false;
+            while (max >= min) {
+                mid = Math.floor((min + max) / 2);
+                if (ucs > _WIDTH_COMBINING[mid][1])
+                    min = mid + 1;
+                else if (ucs < _WIDTH_COMBINING[mid][0])
+                    max = mid - 1;
+                else
+                    return true;
+            }
+            return false;
+        }
+
+        function _width_wcwidth(ucs, opts) {
+            // test for 8-bit control characters
+            if (ucs === 0)
+                return opts.nul;
+            if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0))
+                return opts.control;
+            // binary search in table of non-spacing characters
+            if (_width_bisearch(ucs))
+                return 0;
+            // if we arrive here, ucs is not a combining or C0/C1 control character
+            return 1 +
+                (ucs >= 0x1100 &&
+                (ucs <= 0x115f ||                       // Hangul Jamo init. consonants
+                ucs == 0x2329 || ucs == 0x232a ||
+                (ucs >= 0x2e80 && ucs <= 0xa4cf &&
+                ucs != 0x303f) ||                     // CJK ... Yi
+                (ucs >= 0xac00 && ucs <= 0xd7a3) ||    // Hangul Syllables
+                (ucs >= 0xf900 && ucs <= 0xfaff) ||    // CJK Compatibility Ideographs
+                (ucs >= 0xfe10 && ucs <= 0xfe19) ||    // Vertical forms
+                (ucs >= 0xfe30 && ucs <= 0xfe6f) ||    // CJK Compatibility Forms
+                (ucs >= 0xff00 && ucs <= 0xff60) ||    // Fullwidth Forms
+                (ucs >= 0xffe0 && ucs <= 0xffe6) ||
+                (ucs >= 0x20000 && ucs <= 0x2fffd) ||
+                (ucs >= 0x30000 && ucs <= 0x3fffd)));
+        }
+
+        var _WIDTH_DEFAULTS = {nul: 0, control: 0};
+
+        // wcswidth(string[, opts]) - number of taken terminal cells by a string (printed space)
+        function wcswidth(str, opts) {
+            opts = _WIDTH_DEFAULTS; // FIXME
+            if (typeof str !== 'string')
+                return _width_wcwidth(str, opts);
+            var s = 0;
+            for (var i = 0; i < str.length; i++) {
+                var n = _width_wcwidth(str.charCodeAt(i), opts);
+                if (n < 0)
+                    return -1;
+                s += n;
+            }
+            return s
+        }
+
+        return wcswidth;
+    })();
+
+    /**
+     * @classdesc A TChar is a terminal character with text attributes and width.
+     * In the terminal emulator it represents a terminal cell in a TRow.
+     * The actual character is saved in `c`.
      *
-     * Bits of text attr:
-     *      1-8     BG / BG red
-     *      9-16    FG / FG red
-     *      17      bold
-     *      18      italic
-     *      19      underline
-     *      20      blink
-     *      21      inverse
-     *      22      conceal
-     *      23      cursor
-     *      24      <unused>
-     *      25      BG set
-     *      26      BG RGB mode
-     *      27      FG set
-     *      28      FG RGB mode
-     *      29-32   <unused>
+     * `width` is the printed space of the character according to unicode.
+     * It can be 1 (halfwidth codepoints), 2 (fullwidth codepoints)
+     * or 0 (as intermediate state after a fullwidth codepoint).
+     * `width` always defaults to 1 and is not calculated upon initialization.
+     * The correct width value is set by the emulator while processing
+     * a printable character.
      *
-     * Bits of gb:
-     *      1-8         BG blue
-     *      9-16        FG blue
-     *      17-24       BG green
-     *      25-32       FG green        
+     * For small memory footprint and quick state changes a TChar object stores
+     * the text attributes in the 2 4-byte numbers `attr` and `gb`.
+     *
+     * Bits of `attr`:
+     *
+     *       1-8     background color in 256 mode / background RED in RGB mode
+     *       9-16    foreground color in 256 mode / foreground RED in RGB mode
+     *       17      bold
+     *       18      italic
+     *       19      underline
+     *       20      blink
+     *       21      inverse
+     *       22      conceal
+     *       23      cursor (not set by default)
+     *       24      <unused>
+     *       25      background set (for 256 and RGB mode)
+     *       26      background in RGB mode (true for RGB, false for 256)
+     *       27      foreground set (for 256 and RGB mode)
+     *       28      foreground in RGB mode (true for RGB, false for 256)
+     *       29-32   <unused>
+     *
+     * Bits of `gb`:
+     *
+     *       1-8         background BLUE in RGB mode
+     *       9-16        foreground BLUE in RGB mode
+     *       17-24       background GREEN in RGB mode
+     *       25-32       foreground GREEN in RGB mode
      * 
-     * @param {string} c - An unicode character (multiple if surrogate or combining).
-     * @param {number} attr - Cell attributes as integer.
-     * @param {number} gb - Green and blue part of RGB as integer.
-     * @param {number} width - Terminal cells taken by this character.
-     * @constructor
+     * @param {string} c        - unicode character (multiple if surrogate or combining)
+     * @param {number} attr     - text attributes as integer
+     * @param {number} gb       - green and blue part of RGB as integer
+     * @param {number} width    - printed space of character
+     * @property {string} c     - unicode character (multiple if surrogate or combining)
+     * @property {number} attr  - text attributes as integer
+     * @property {number} gb    - green and blue part of RGB as integer
+     * @property {number} width - printed space of character
+     * @constructor module:node-ansiterminal.TChar
+     * @typicalname tchar
      */
     function TChar(c, attr, gb, width) {
         this.c = c;
@@ -174,11 +273,58 @@
         this.gb = gb | 0;
         this.width = (width === undefined) ? 1 : width;
     }
+
+    /**
+     * Clone a TChar object.
+     * @return {module:node-ansiterminal.TChar}
+     * @method module:node-ansiterminal.TChar#clone
+     */
     TChar.prototype.clone = function() {
         return new TChar(this.c, this.attr, this.gb, this.width);
     };
-    
-    /** @return {object} Object with attributes in a readable manner. */
+
+    /**
+     * Test equality of TChar.
+     * @param {module:node-ansiterminal.TChar} other
+     * @return {boolean}
+     * @method module:node-ansiterminal.TChar#equals
+     */
+    TChar.prototype.equals = function(other) {
+        return ( other instanceof TChar
+            && this.c==other.c
+            && this.attr==other.attr
+            && this.gb==other.gb
+            && this.width==other.width)
+    };
+
+    /**
+     * Serialize a TChar.
+     * @return {Array}
+     * @method module:node-ansiterminal.TChar#serialize
+     */
+    TChar.prototype.serialize = function() {
+        return [this.c, this.attr, this.gb, this.width];
+    };
+
+    /**
+     * Deserialize a serialization object to TChar.
+     * @param {object} o
+     * @return {module:node-ansiterminal.TChar}
+     * @method module:node-ansiterminal.TChar.deserialize
+     */
+    TChar.deserialize = function(o) {
+        return new TChar(o[0], o[1], o[2], o[3]);
+    };
+
+    /**
+     * Get all text attributes in a readable manner.
+     * The attributes object may contain left over color values
+     * of a former RGB setting. This is due to the way xterm
+     * handles those values internally. For cleaned attributes
+     * see {@link module:node-ansiterminal.TChar#getJSONAttributes}
+     * @return {module:node-ansiterminal~TAttributes}
+     * @method module:node-ansiterminal.TChar#getAttributes
+     */
     TChar.prototype.getAttributes = function() {
         var colorbits = this.attr >>> 24;
         var r = this.attr & 65535;
@@ -205,7 +351,88 @@
             }
         }
     };
+
+    /**
+     * Get all text attributes in a readable manner without state internals.
+     * Use this in favour of {@link module:node-ansiterminal.TChar#getAttributes} if you need
+     * the attributes in a clean way without remnant color values.
+     *
+     * Except the colors all attributes are simple boolean values.
+     * The color attributes default to false and will turn into an object
+     * with a `mode` and a `color` attribute if a color is set. For mode '256'
+     * the color will be a single integer indicating the color in the 256 color scheme.
+     * For mode 'RGB' color is an array with the RGB color values.
+     *
+     * NOTE: The simple 8bit colors are not directly supported by the terminal emulator.
+     * They will be translated to the lower colors of the 256 color scheme.
+     *
+     * Example output with a foreground color set:
+     * ```js
+     * {
+     *     bold: false,
+     *     italic: false,
+     *     underline: false,
+     *     blink: false,
+     *     inverse: false,
+     *     conceal: false,
+     *     foreground: {mode: '256', color: 12},
+     *     background: false
+     * }
+     * ```
+     * @return {module:node-ansiterminal~TJSONAttributes}
+     * @method module:node-ansiterminal.TChar#getJSONAttributes
+     */
+    TChar.prototype.getJSONAttributes = function() {
+        var colorbits = this.attr >>> 24;
+        var r = this.attr & 65535;
+        var g = this.gb >>> 16;
+        var b = this.gb & 65535;
+        var bits = this.attr >>> 16 & 255;
+        var attr = {
+            bold: !!(bits & 1),
+            italic: !!(bits & 2),
+            underline: !!(bits & 4),
+            blink: !!(bits & 8),
+            inverse: !!(bits & 16),
+            conceal: !!(bits & 32),
+            foreground: false,
+            background: false
+        };
+        if (colorbits & 4) {
+            attr.foreground = {};
+            if (colorbits & 8) {
+                attr.foreground['mode'] = 'RGB';
+                attr.foreground['color'] = {r: r>>>8, g: g>>>8, b: b>>>8};
+            } else {
+                attr.foreground['mode'] = '256';
+                attr.foreground['color'] = r>>>8;
+            }
+        }
+        if (colorbits & 1) {
+            attr.background = {};
+            if (colorbits & 2) {
+                attr.background['mode'] = 'RGB';
+                attr.background['color'] = {r: r&255, g: g&255, b: b&255};
+            } else {
+                attr.background['mode'] = '256';
+                attr.background['color'] = r&255;
+            }
+        }
+        return attr;
+    };
+
+    /**
+     * Set the text attributes. The parameter must be in the form of the output
+     * of {@link module:node-ansiterminal.TChar#getAttributes}.
+     * @param {module:node-ansiterminal~TAttributes} attributes
+     * @method module:node-ansiterminal.TChar#setAttributes
+     */
     TChar.prototype.setAttributes = function(attributes) {
+        if (attributes === 0) {
+            this.attr = 0;
+            this.gb = 0;
+            return
+        }
         var attr = this.attr;
         ['bold', 'italic', 'underline', 'blink', 'inverse', 'conceal'].map(function(el, i) {
             if (attributes[el] !== undefined)
@@ -237,26 +464,440 @@
         }
         this.attr = attr;
     };
-    TChar.prototype.toString = function() {
-        return this.c;
-    };
-    TChar.prototype.toHtml = function() {
-        return ''; // TODO
-    };
-    TChar.prototype.toEscapeString = function() {
-        return ''; // TODO
-    };
 
+    /**
+     * Trim right of '\x00'.
+     * '\x00' is used as an intermediate placeholder for empty cells
+     * by the TRow output methods.
+     * @param {string} s
+     * @return {string}
+     */
+    function trimRight(s) {
+        return s.replace(/[\x00]+$/,"");
+    }
 
     var _uniqueId = 0;
-    var Row = function() {
+    /**
+     * The constructor will create `length` cells of cloned `tchar` objects.
+     *
+     * @classdesc A TRow contains single terminal cells (TChar) in `cells`.
+     * The global unique ID `uniqueId` will never change for an existing TRow.
+     * The `version` attributes will be incremented by the terminal emulator
+     * upon changes. This can be used to implement a partial refresh of a view output.
+     *
+     * @param {number} length       - amount of cells to create
+     * @param {module:node-ansiterminal.TChar} tchar - base object to be cloned as initial
+     * @property {array} cells      - array containing the single {@link TChar} objects
+     * @property {number} uniqueId  - global unique id of the row object
+     * @property {number} version   - incremented by emulator upon changes
+     * @constructor module:node-ansiterminal.TRow
+     */
+    function TRow(length, tchar) {
         this.uniqueId = _uniqueId++|0;
         this.version = 1;
         this.cells = [];
+        for (var i=0; i<length; ++i) {
+            //this.cells.push(tchar.clone()); // to slow?
+            this.cells.push(new TChar(tchar.c, tchar.attr, tchar.gb, tchar.width));
+        }
+    }
+
+    /**
+     * Serialize a TRow.
+     * @return {Array}
+     * @method module:node-ansiterminal.TRow#serialize
+     */
+    TRow.prototype.serialize = function() {
+        var result = [];
+        for (var i=0; i<this.cells.length; ++i)
+            result.push(this.cells[i].serialize());
+        return result;
     };
 
     /**
-     * ScreenBuffer - represents a terminal screen with cols and rows.
+     * Deserialize a TRow.
+     * @param o
+     * @return {module:node-ansiterminal.TRow}
+     * @method module:node-ansiterminal.TRow.deserialize
+     */
+    TRow.deserialize = function(o) {
+        var row = new TRow(0, null);
+        for (var i=0;i< o.length; ++i)
+            row.cells.push(TChar.deserialize(o[i]));
+        return row;
+    };
+
+    /**
+     * String representation of TRow.
+     * @param {object} opts
+     * @return {string}
+     * @method module:node-ansiterminal.TRow#toString
+     */
+    TRow.prototype.toString = function(opts) {
+        // set options
+        var options = {
+            rtrim: true,
+            empty_cell: ' '  // non break space
+        };
+        if (opts) {
+            if (opts.hasOwnProperty('rtrim'))
+                options.rtrim = opts.rtrim;
+            if (opts.hasOwnProperty('empty_cell'))
+                options.empty_cell = opts.empty_cell;
+        }
+        var s = '';
+        for (var i=0; i<this.cells.length; ++i) {
+            s += this.cells[i].c || '\x00';
+        }
+        if (options.rtrim)
+            s = trimRight(s);
+        return s.replace(/\x00/g, options.empty_cell);
+    };
+
+    /**
+     * Array representation of merged TChars objects with same text attributes.
+     * @param opts
+     * @return {Array} array of merged TChar objects
+     * @method module:node-ansiterminal.TRow#toMergedArray
+     */
+    TRow.prototype.toMergedArray = function(opts) {
+        // set options
+        var options = {
+            rtrim: false,
+            empty_cell: '\xa0'  // non break space
+        };
+        if (opts) {
+            if (opts.hasOwnProperty('rtrim'))
+                options.rtrim = opts.rtrim;
+            if (opts.hasOwnProperty('empty_cell'))
+                options.empty_cell = opts.empty_cell;
+        }
+
+        // build tchar stack
+        var stack = [];
+        if (!this.cells.length)
+            return stack;
+        var tchar = null;
+        var elem = this.cells[0].clone();
+        elem.c = elem.c || '\x00';
+        for (var i=1; i<this.cells.length; ++i) {
+            tchar = this.cells[i];
+            if ((elem.attr !== tchar.attr)) {
+                stack.push(elem);
+                elem = tchar.clone();
+                elem.c = elem.c || '\x00';
+            } else if (tchar.width) {
+                elem.c += tchar.c || '\x00';
+                elem.width += tchar.width;
+            }
+        }
+        stack.push(elem);
+
+        // rtrim
+        if (options.rtrim) {
+            while (stack.length) {
+                var last = stack.pop();
+                var s = trimRight(last.c);
+                if (s.length) {
+                    last.width -= last.c.length - s.length;
+                    last.c = s;
+                    stack.push(last);
+                    break;
+                }
+            }
+        }
+
+        // fill empty cells
+        for (i=0; i<stack.length; ++i) {
+            stack[i].c = stack[i].c.replace(/\x00/g, options.empty_cell);
+        }
+        return stack;
+    };
+
+    /**
+     * Drilled down JSON representation of a TRow.
+     * Returns objects of sub strings with distinct text attributes.
+     * @note The print space width is summed up.
+     * @param opts
+     * @return {module:node-ansiterminal~JSONTRow}
+     * @method module:node-ansiterminal.TRow#toJSON
+     */
+    TRow.prototype.toJSON = function(opts) {
+        var json = [];
+        var stack = this.toMergedArray(opts);
+        var tchar = null;
+        for (var i=0; i<stack.length; ++i) {
+            tchar = stack[i];
+            json.push({
+                string: tchar.c,
+                width: tchar.width,
+                attributes: tchar.getJSONAttributes()});
+        }
+        return json;
+    };
+
+    function _get_escape_string(attr_old, attr_new, gb_old, gb_new) {
+        if (!attr_new)
+            return '\x1b[0m';
+
+        var bits = (attr_new >>> 16) & 255;
+        var diff = ((attr_old >>> 16) & 255) ^ bits;
+        var colorbits = attr_new >>> 24;
+        var r = attr_new & 65535;
+        var result = [];
+
+        if (diff) {
+            if (diff & 1)  result.push((bits & 1)  ? 1 : 22);  // bold
+            if (diff & 2)  result.push((bits & 2)  ? 3 : 23);  // italic
+            if (diff & 4)  result.push((bits & 4)  ? 4 : 24);  // underline
+            if (diff & 8)  result.push((bits & 8)  ? 5 : 25);  // blink
+            if (diff & 16) result.push((bits & 16) ? 7 : 27);  // inverse
+            if (diff & 32) result.push((bits & 32) ? 8 : 28);  // conceal
+        }
+
+        // colors
+        if ((attr_old >>> 24)^colorbits || (attr_old & 65535)^r || gb_old^gb_new) {
+            if (colorbits & 4) {      // foreground
+                if (colorbits & 8) {  // RGB
+                    result.push(38, 2, r>>>8, gb_new>>>24, (gb_new&65535)>>>8);
+                } else {
+                    result.push(38, 5, (bits & 1) ? (r>>>8)|8 : r>>>8);
+                }
+            } else {  // unset
+                if (attr_old&67108864)
+                    result.push(39);
+            }
+            if (colorbits & 1) {      // background
+                if (colorbits & 2) {  // RGB
+                    result.push(48, 2, r&255, (gb_new>>>16)&255, gb_new&255);
+                } else {
+                    result.push(48, 5, r&255);
+                }
+            } else {  // unset
+                if (attr_old&16777216)
+                    result.push(49);
+            }
+        }
+        return '\x1b[' + result.join(';') + 'm';
+    }
+
+    /**
+     * String representation of TRow with escape codes.
+     * @param opts
+     * @return {string}
+     * @method module:node-ansiterminal.TRow#toEscapeString
+     */
+    TRow.prototype.toEscapeString = function(opts) {
+        var s = '\x1b[0m';
+        var stack = this.toMergedArray(opts);
+        var tchar = null;
+        var old_attr = 0;
+        var old_gb = 0;
+        for (var i=0; i<stack.length; ++i) {
+            tchar = stack[i];
+            s += _get_escape_string(old_attr, tchar.attr, old_gb, tchar.gb);
+            s += tchar.c;
+            old_attr = tchar.attr;
+            old_gb = tchar.gb;
+        }
+        if (old_attr)
+            s += '\x1b[0m';
+        return s;
+    };
+
+    var _DEFAULT_COLORS = [
+        '#000000', '#cd0000', '#00cd00', '#cdcd00',
+        '#0000ee', '#cd00cd', '#00cdcd', '#e5e5e5',
+        '#7f7f7f', '#ff0000', '#00ff00', '#ffff00',
+        '#5c5cff', '#ff00ff', '#00ffff', '#ffffff'];
+
+    /**
+     * Default color mapper function with xterm colorset in white on black.
+     * @param value
+     * @return {string} hex color string
+     * @function module:node-ansiterminal.get_color
+     */
+    function get_color(value) {
+        if (value == 'foreground')  // default foreground color
+            return '#ffffff';
+        if (value == 'background')  // default background color
+            return '#000000';
+        if (value < 16) {
+            return _DEFAULT_COLORS[value];
+        }
+        // extended colors
+        if (value < 232) {
+            var digits = [0, 95, 135, 175, 215, 255];
+            value -= 16;
+            var result = 0;
+            for (var i=0; i<3; ++i) {
+                result += digits[(value % 6)] << (i*8);
+                value = parseInt(value/6);
+            }
+            result = result.toString(16);
+            return '#' + Array(6-result.length+1).join('0') + result;
+        }
+        // grey values
+        var base = 8 + (value-232) * 10;
+        return '#' + (base + (base << 8) + (base << 16)).toString(16);
+    }
+
+    function _get_html_styles(attr, options) {
+        var style_ = '';
+        var class_ = '';
+        if (options.classes) {
+            if (attr.bold)      class_ += 'bold ';
+            if (attr.italic)    class_ += 'italic ';
+            if (attr.underline) class_ += 'underline ';
+            if (attr.blink)     class_ += 'blink ';
+            if (attr.conceal)   class_ += 'conceal ';
+        } else {
+            if (attr.bold)      style_ += 'font-weight:bold;';
+            if (attr.italic)    style_ += 'font-style:italic;';
+            if (attr.underline) style_ += 'font-decoration:underline;';
+            if (attr.blink)     style_ += 'visibility:hidden;animation: '
+                                            + options.blinkanimation
+                                            + ' 1s steps(1, start) infinite;';
+            if (attr.conceal)   style_ += 'visibility:hidden;';
+        }
+        if (attr.inverse) {
+            var tmp = attr.foreground;
+            attr.foreground = attr.background;
+            attr.background = tmp;
+        }
+        if (attr.foreground) {
+            if (attr.foreground.mode == 'RGB') {
+                style_ += 'color:rgb(';
+                style_ += attr.foreground.color.r;
+                style_ += ',';
+                style_ += attr.foreground.color.g;
+                style_ += ',';
+                style_ += attr.foreground.color.b;
+                style_ += ');';
+            } else {
+                var fg = attr.foreground.color;
+                if (attr.bold)
+                    fg = fg|8;
+                if (options.classes)
+                    class_ += 'fg' + fg + ' ';
+                else
+                    style_ += 'color:' + options.colors(fg) + ';';
+            }
+        } else if (attr.inverse) {
+            if (options.classes)
+                    class_ += 'fg-1 ';
+                else
+                    style_ += 'color:' + options.colors('background') + ';';
+        }
+        if (attr.background) {
+            if (attr.background.mode == 'RGB') {
+                style_ += 'background-color:rgb(';
+                style_ += attr.background.color.r;
+                style_ += ',';
+                style_ += attr.background.color.g;
+                style_ += ',';
+                style_ += attr.background.color.b;
+                style_ += ');';
+            } else {
+                if (options.classes)
+                    class_ += 'bg' + attr.background.color + ' ';
+                else
+                    style_ += 'background-color:' + options.colors(attr.background.color) + ';';
+            }
+        } else if (attr.inverse) {
+            if (options.classes)
+                class_ += 'bg-1 ';
+            else
+                style_ += 'background-color:' + options.colors('foreground') + ';';
+        }
+        if (class_)
+            class_ = ' class="' + class_.trim() + '"';
+        if (style_)
+            style_ = ' style="' + style_.trim() + '"';
+        return class_ + style_;
+    }
+
+    function _escape_html(s) {
+        return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * HTML string representation of TRow.
+     *
+     * The terminal string gets decorated by span elements with textattributes
+     * either set via class names or inline styles.
+     *
+     * Options are:
+     *
+     *     rtrim            Trim empty cells from right.
+     *                      Defaults to true.
+     *     empty_cell       Fill empty_cells with given string.
+     *                      Defaults to none break space character '\xa0'.
+     *     blinkanimation   CSS animation class name. Since an animation in CSS
+     *                      can't be declared inline, this is mandatory for
+     *                      classes false.
+     *     classes          Use CSS classes (true) or inline styles (false).
+     *                      The class names are: 'blink', 'italic',
+     *                      'underline', 'blink', 'conceal', 'fgX', 'bgX'
+     *                      For foreground and background colors the 'X'
+     *                      is the number of a 256 color table, e.g. 'fg134'.
+     *                      Default foreground and background colors have
+     *                      no class name. Therefore inverted default colors
+     *                      are named as 'fg-1' and 'bg-1'.
+     *                      Defaults to true.
+     *     colors           Customizable callback for inline colors.
+     *                      The callback has to support one parameter as
+     *                      color number from 0..255 or the keywords
+     *                      'foreground' or 'background' for default colors).
+     *                      The default callback uses the xterm colorset.
+     *     escape_html      Escape html characters in terminal string.
+     *                      Default is true.
+     *
+     * @param opts
+     * @return {string} HTML string
+     * @method module:node-ansiterminal.TRow#toHTML
+     */
+    TRow.prototype.toHTML = function(opts) {
+        // set options
+        var options = {
+            rtrim: true,
+            empty_cell: '\xa0',
+            blinkanimation: 'blink',
+            classes: true,
+            colors: get_color,
+            escape_html: true
+        };
+        if (opts) {
+            var parts = ['rtrim', 'empty_cell', 'blinkanimation', 'colors', 'classes'];
+            for (var p=0; p<parts.length; ++p) {
+                if (opts.hasOwnProperty(parts[p]))
+                    options[parts[p]] = opts[parts[p]];
+            }
+        }
+
+        var stack = this.toMergedArray(options);
+
+        // build html string
+        var html = '';
+        var tchar = null;
+        for (var i=0; i<stack.length; ++i) {
+            tchar = stack[i];
+            if (tchar.attr)
+                html += '<span' + _get_html_styles(tchar.getJSONAttributes(), options) + '>';
+            html += (options.escape_html) ? _escape_html(tchar.c) : tchar.c;
+            if (tchar.attr)
+                html += '</span>';
+        }
+        return html;
+    };
+
+    /**
+     * TScreen - represents a terminal screen with cols and rows.
      *
      * .buffer is an array of length rows and contains the row objects.
      *
@@ -265,41 +906,65 @@
      * @param scrollLength
      * @constructor
      */
-    var ScreenBuffer = function(cols, rows, scrollLength) {
+    function TScreen(cols, rows, scrollLength) {
         this.rows = rows;
         this.cols = cols;
         this.scrollLength = scrollLength | 0;
 
         this.buffer = [];
         this.scrollbuffer = [];
-        this.versions = {};
 
         this.reset();
-    };
+    }
 
-    ScreenBuffer.prototype.reset = function() {
+    TScreen.prototype.reset = function() {
         this.buffer = [];
         this.scrollbuffer = [];
-        this.versions = {};
         var row;
         for (var i = 0; i < this.rows; ++i) {
-            row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar(''));
+            row = new TRow(this.cols, new TChar(''));
             this.buffer.push(row);
-            this.versions[row] = 1;
         }
     };
 
-    ScreenBuffer.prototype.appendToScrollBuffer = function(row) {
+    TScreen.prototype.serialize = function() {
+        var i;
+        var serialized_buffer = [];
+        var serialized_scrollbuffer = [];
+        for (i=0; i<this.buffer.length; ++i)
+            serialized_buffer.push(this.buffer[i].serialize());
+        for (i=0; i<this.scrollbuffer.length; ++i)
+            serialized_scrollbuffer.push(this.scrollbuffer[i].serialize());
+        return {
+            cols: this.cols,
+            rows: this.rows,
+            scrollLength: this.scrollLength,
+            buffer: serialized_buffer,
+            scrollbuffer: serialized_scrollbuffer
+        }
+    };
+    TScreen.deserialize = function(o) {
+        var i;
+        var sb = new TScreen(0, 0, 0);
+        sb.rows = o.rows;
+        sb.cols = o.cols;
+        sb.scrollLength = o.scrollLength;
+        for (i=0; i<sb.rows; ++i)
+            sb.buffer.push(TRow.deserialize(o.buffer[i]));
+        for (i=0; i<sb.scrollLength; ++i)
+            sb.scrollbuffer.push(TRow.deserialize(o.scrollbuffer[i]));
+        return sb;
+    };
+
+    TScreen.prototype.appendToScrollBuffer = function(row) {
         this.scrollbuffer.push(row);
         while (this.scrollbuffer.length > this.scrollLength)
             this.scrollbuffer.shift();
     };
-    ScreenBuffer.prototype.fetchFromScrollBuffer = function() {
+    TScreen.prototype.fetchFromScrollBuffer = function() {
         return this.scrollbuffer.pop();
     };
-    ScreenBuffer.prototype.resize = function(cols, rows, cursor) {
+    TScreen.prototype.resize = function(cols, rows, cursor) {
         // xterm behavior - shrink:
         //      delete higher rows til cursor then lowest to scrollbuffer
         // xterm behavior - enlarge:
@@ -327,9 +992,7 @@
                     cursor.row += 1;
                 }
                 else {
-                    row = new Row();
-                    for (var j=0; j<this.cols; ++j)
-                        row.cells.push(new TChar(''));
+                    row = new TRow(this.cols, new TChar(''));
                     this.buffer.push(row);
                 }
             }
@@ -405,12 +1068,38 @@
 
 
     /**
-     * AnsiTerminal - an offscreen terminal.
+     * AnsiTerminal - an offscreen xterm like terminal.
+     *
+     * The terminal implements the interface of node-ansiparser.
+     * Since the parser calls the methods directly this terminal has
+     * no direct input method. Use the parser's `parse(s)` method
+     * instead (see documentation of the parser and the example below).
+     *
+     * The terminal has no direct screen representation beside
+     * a `toString()` method for debug purposes.
+     * Use the output methods of the TRow primitive to build a view
+     * of the terminal content.
+     *
+     * Like xterm the terminal maintains 2 different screen buffers.
+     * The normal screen has a scrolling history while the alternate
+     * has none. Most simple programs operate on the normal
+     * screen while more advanced command line programs (e.g. curses based)
+     * use the alternate screen as a canvas. The current active
+     * screen is always accessible via the `screen` attribute.
      * 
      * @param {number} cols - columns of the terminal.
      * @param {number} rows - rows of the terminal.
      * @param {number} scrollLength - lines of scrollbuffer.
-     * @constructor
+     * @constructor module:node-ansiterminal.AnsiTerminal
+     * @example
+     * ```js
+     * var AnsiTerminal = require('node-ansiterminal').AnsiTerminal;
+     * var AnsiParser = require('node-ansiparser');
+     * var terminal = new AnsiTerminal(80, 25, 500);
+     * var parser = new AnsiParser(terminal);
+     * parser.parse('\x1b[31mHello World!\x1b[0m');
+     * console.log(terminal.toString());
+     * ```
      */
     function AnsiTerminal(cols, rows, scrollLength) {
         this.rows = rows;
@@ -423,10 +1112,14 @@
         this.reset();
     }
 
-    /** Hard reset of the terminal. */
+    /**
+     * Hard reset of the terminal.
+     *
+     * @member module:node-ansiterminal.AnsiTerminal#reset
+     */
     AnsiTerminal.prototype.reset = function () {
-        this.normal_screen = new ScreenBuffer(this.cols, this.rows, this.scrollLength);
-        this.alternate_screen = new ScreenBuffer(this.cols, this.rows, 0);
+        this.normal_screen = new TScreen(this.cols, this.rows, this.scrollLength);
+        this.alternate_screen = new TScreen(this.cols, this.rows, 0);
         this.screen = this.normal_screen;
         this.normal_cursor = {col: 0, row: 0};
         this.alternate_cursor = {col: 0, row: 0};
@@ -455,8 +1148,6 @@
 
         this.mouseDown = {1: false, 2:false, 3:false, 4:false};
 
-        // unicode and fullwidth support
-        this._rem_g = '';                       // remainder of 0 width char (combining characters)
         this._rem_c = '';                       // remainder of surrogates
 
         // new wrapping behavior
@@ -464,20 +1155,16 @@
         this.row_wrap = false;
     };
 
-    /** @return {string} String representation of active buffer. */
-    AnsiTerminal.prototype.toString = function() {
-        var s = '', j;
-        for (var i = 0; i < this.screen.buffer.length; ++i) {
-            var last_nonspace = 0;  // FIXME: quick and dirty fill up from left
-            for (j = 0; j < this.screen.buffer[i].cells.length; ++j) {
-                if (this.screen.buffer[i].cells[j].c)
-                    last_nonspace = j;
-            }
-            for (j = 0; j < this.screen.buffer[i].cells.length; ++j) {
-                s += (last_nonspace > j)
-                    ? (this.screen.buffer[i].cells[j].c || ' ')
-                    : this.screen.buffer[i].cells[j].c;
-            }
+    /**
+     * String representation of active terminal buffer.
+     * @param opts
+     * @return {string}
+     * @member module:node-ansiterminal.AnsiTerminal#toString
+     */
+    AnsiTerminal.prototype.toString = function(opts) {
+        var s = '';
+        for (var i=0; i<this.screen.buffer.length; ++i) {
+            s += this.screen.buffer[i].toString(opts);
             s += '\n';
         }
         return s;
@@ -486,8 +1173,9 @@
     /**
      * Resize terminal to cols x rows.
      *  
-     * @param cols
-     * @param rows
+     * @param {number} cols     - new columns value
+     * @param {number} rows     - new rows value
+     * @member module:node-ansiterminal.AnsiTerminal#resize
      */
     AnsiTerminal.prototype.resize = function(cols, rows) {
         // skip insane values
@@ -514,64 +1202,18 @@
             this.DECSC();
     };
 
-    /**
-     * Propagate mouse action to terminal emulator.
-     *
-     * @param {string} type - type of action ('mousedown', 'mouseup' or 'mousemove')
-     * @param {number} col - column the mouse action took place.
-     * @param {number} row - row the mouse action took place.
-     * @param {string} type - type of action ('mousedown', 'mouseup', 'mousemove' or 'wheel')
-     * @param {number} button - button number
-     */
-    var type_mappings = {
-        9:0,        // 1001 wheel and mousedown
-        1000:0,     // 1011 all but mousemove
-        //1001:0,   // 1111
-        1002:0,     // 1111 with condition: mousemove only after mousedown
-        1003:0      // 1111
-    };
-    AnsiTerminal.prototype.mouseAction = function(type, button, col, row) {
-        if (!this.mouse_mode)
-            return;
-        if (this.mouse_mode == 9 && (type != 'mousedown' || type != 'wheel'))
-            return;
-        if (this.mouse_mode == 1000 && type == 'mousemove')
-            return;
-        if (this.mouse_mode == 1002 && type == 'mousemove' && !this.mouseDown[button])
-            return;
-
-        // if we made it this far we got a legal mouse action and process it further
-
-        // special state switch for mousemove after mousedown in 1002
-        if (this.mouse_mode == 1002) {
-            if (type == 'mousedown')
-                this.mouseDown[button] = true;
-            else if (type == 'mouseup')
-                this.mouseDown[button] = false;
-        }
-
-        switch (this.mouse_protocol) {
-            case 0:
-                break;
-            case 1005:
-                break;
-            case 1006:
-                break;
-            case 1015:
-                break;
-            default:
-                console.log('mouse protocol' + this.mouse_protocol + 'not implemented');
-        }
-    };
-
     /** 
      * Implementation of the parser instructions
      */
 
     /**
-     * inst_p - handle printable character.
+     * inst_p - handle printable characters
+     *
+     * The print implementation is aware of combining and surrogate characters and respects
+     * half and full width print space according to unicode.
      *
      * @param {string} s
+     * @member module:node-ansiterminal.AnsiTerminal#inst_p
      */
     AnsiTerminal.prototype.inst_p = function(s) {
         if (this.debug)
@@ -583,7 +1225,7 @@
 
         // add leftover surrogate high
         if (this._rem_c) {
-            s += this._rem_c;
+            s = this._rem_c + s;
             this._rem_c = '';
         }
 
@@ -620,22 +1262,32 @@
                 this.wrap = false;
             }
             if (this.cursor.row >= this.scrolling_bottom) {
-                var row = new Row();
-                for (var j = 0; j < this.cols; ++j)
-                    row.cells.push(new TChar('', this.textattributes, this.colors));
-                this.screen.buffer.splice(this.scrolling_bottom, 0, row);
-                var scrolled_out = this.screen.buffer.splice(this.scrolling_top, 1)[0];
-                if (!this.scrolling_top)
-                    this.screen.appendToScrollBuffer(scrolled_out);
+                this.SU();
                 this.cursor.row--;
             }
             this.screen.buffer[this.cursor.row].version++;
 
             if (!width && this.cursor.col) { // combining characters
-                this.screen.buffer[this.cursor.row].cells[this.cursor.col-1].c += c;
+                if (this.wrap) {
+                    this.screen.buffer[this.cursor.row].cells[this.cursor.col].c += c;
+                } else {
+                    if (this.screen.buffer[this.cursor.row].cells[this.cursor.col - 1].width==0) {
+                        if ((this.cursor.col - 2 >= 0)
+                            && this.screen.buffer[this.cursor.row].cells[this.cursor.col - 2].width==2)
+                            this.screen.buffer[this.cursor.row].cells[this.cursor.col - 2].c += c;
+                    } else {
+                        this.screen.buffer[this.cursor.row].cells[this.cursor.col - 1].c += c;
+                    }
+                }
             }
             else {
                 c = (this.charset) ? (this.charset[c] || c) : c;
+                this.last_char = c;
+                if (this.insert_mode) {
+                    this.screen.buffer[this.cursor.row].cells.pop();
+                    this.screen.buffer[this.cursor.row].cells.splice(
+                        this.cursor.col, 0, new TChar('', this.textattributes, this.colors));
+                }
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].c = c;
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].attr = this.charattributes;
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].gb = this.colors;
@@ -657,6 +1309,17 @@
             }
 
             if (width == 2) {
+                if (this.insert_mode) {
+                    this.screen.buffer[this.cursor.row].cells.pop();
+                    this.screen.buffer[this.cursor.row].cells.splice(
+                        this.cursor.col, 0, new TChar('', this.textattributes, this.colors));
+                    if (this.screen.buffer[this.cursor.row].cells[this.cols-1].width == 2) {
+                        this.screen.buffer[this.cursor.row].cells.pop();
+                        this.screen.buffer[this.cursor.row].cells.push(
+                            new TChar('', this.textattributes, this.colors)
+                        );
+                    }
+                }
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].width = 0;
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].c = '';
                 this.screen.buffer[this.cursor.row].cells[this.cursor.col].attr = this.charattributes;
@@ -680,10 +1343,16 @@
         }
     };
 
+    /**
+     * inst_o - handle OSC instruction
+     * @param s
+     * @member module:node-ansiterminal.AnsiTerminal#inst_o
+     */
     AnsiTerminal.prototype.inst_o = function(s) {
         if (this.debug)
             console.log('inst_o', s);
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
         if (s.charAt(0) == '0')
             this.title = s.slice(2);
@@ -691,22 +1360,22 @@
             console.log('inst_o unhandled:', s);
     };
 
+    /**
+     * inst_x - handle single character instruction
+     * @param flag
+     * @member module:node-ansiterminal.AnsiTerminal#inst_x
+     */
     AnsiTerminal.prototype.inst_x = function (flag) {
         if (this.debug)
             console.log('inst_x', flag.charCodeAt(0), flag);
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
         switch (flag) {
             case '\n':
                 this.cursor.row++;
                 if (this.cursor.row >= this.scrolling_bottom) {
-                    var row = new Row();
-                    for (var j = 0; j < this.cols; ++j)
-                        row.cells.push(new TChar('', this.textattributes, this.colors));
-                    this.screen.buffer.splice(this.scrolling_bottom, 0, row);
-                    var scrolled_out = this.screen.buffer.splice(this.scrolling_top, 1)[0];
-                    if (!this.scrolling_top)
-                        this.screen.appendToScrollBuffer(scrolled_out);
+                    this.SU();
                     this.cursor.row--;
                 }
                 if (this.newline_mode)
@@ -740,18 +1409,21 @@
     };
 
     /**
-     * missing (from xterm)
-     *
-     * CSI Ps g    Tab Clear (TBC).
-     * (more to come...)
-     *
+     * inst_c - handle CSI instruction
+     * @param collected
+     * @param params
+     * @param flag
+     * @member module:node-ansiterminal.AnsiTerminal#inst_c
      */
     AnsiTerminal.prototype.inst_c = function(collected, params, flag) {
         if (this.debug)
             console.log('inst_c', collected, params, flag);
         if (flag != 'b')        // hack for getting REP working
             this.last_char = '';
-        this.wrap = false;
+        if (flag !== 'S' && flag !== 'T') { // FIXME: all but SD/SU reset wrap -> bug in xterm?
+            this._rem_c = '';
+            this.wrap = false;
+        }
         switch (collected) {
             case '':
                 switch (flag) {
@@ -779,12 +1451,14 @@
                     case 'b':  return this.REP(params);
                     case 'e':  return this.VPR(params);
                     case 'd':  return this.VPA(params);
-                    case 'c':  return this.send(TERM_STRING['CSI'] + '?64;1;2;6;9;15;18;21;22c');  // DA1
+                    case 'c':  return this.send(TERM_STRING['CSI'] + '?64;1;2;6;9;15;18;21;22c');  // DA1 TODO: DA1 function
                     case 'h':  return this.high(collected, params);
                     case 'l':  return this.low(collected, params);
                     case 'm':  return this.SGR(params);
                     case 'n':  return this.DSR(collected, params);
                     case 'r':  return this.DECSTBM(params);
+                    case 's':  return this.DECSC();
+                    case 'u':  return this.DECRC();
                     case '`':  return this.HPA(params);
                     default :
                         console.log('inst_c unhandled:', collected, params, flag);
@@ -820,80 +1494,126 @@
         }
     };
 
+    /**
+     * inst_e - handle ESC instruction
+     * @param collected
+     * @param flag
+     * @member module:node-ansiterminal.AnsiTerminal#inst_e
+     */
     AnsiTerminal.prototype.inst_e = function(collected, flag) {
         if (this.debug)
             console.log('inst_e', collected, flag);
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
-        switch (flag) {
-            // complete ESC codes from xterm:
-            //    ESC H   Tab Set ( HTS is 0x88).  // TODO
-            //    ESC N   Single Shift Select of G2 Character Set ( SS2 is 0x8e). This affects next character only.
-            //    ESC O   Single Shift Select of G3 Character Set ( SS3 is 0x8f). This affects next character only.
-            //    ESC P   Device Control String ( DCS is 0x90).
-            //    ESC V   Start of Guarded Area ( SPA is 0x96).
-            //    ESC W   End of Guarded Area ( EPA is 0x97).
-            //    ESC X   Start of String ( SOS is 0x98).
-            //    ESC Z   Return Terminal ID (DECID is 0x9a). Obsolete form of CSI c (DA).
-            //        case 'F':  // (SP) 7-bit controls (S7C1T) - not supported
-            //        case 'G':  // (SP) 8-bit controls (S8C1T) - not supported
-            //        case 'L':  // (SP) Set ANSI conformance level 1 (dpANS X3.134.1) - not supported
-            //        case 'M':  // (SP) Set ANSI conformance level 2 (dpANS X3.134.1) - not supported
-            //        case 'N':  // (SP) Set ANSI conformance level 3 (dpANS X3.134.1) - not supported
-            //        case '3':  // (#) DEC double-height line, top half (DECDHL) - not supported
-            //        case '4':  // (#) DEC double-height line, bottom half (DECDHL) - not supported
-            //        case '5':  // (#) DEC single-width line (DECSWL) - not supported
-            //        case '6':  // (#) DEC double-width line (DECDWL) - not supported
-            //        case '8':  // (#) DEC Screen Alignment Test (DECALN) - not supported
-            //        case '@':  // (%) Select default character set. That is ISO 8859-1 (ISO 2022) - not supported
-            //        case 'G':  // (%) Select UTF-8 character set (ISO 2022) - not supported
-            // (() Designate G0 Character Set (ISO 2022, VT100)
-            // more flags: A B < %5 > 4 C 5 R f Q 9 K Y ` E 6 %6 Z H 7 =
-            // more collected: ) G1, * G2, + G3, - G1, . G2, / G3
-            case '0':
-                if (collected == '(' || collected == ')') this.charset = CHARSET_0;
-                break;
-            case 'B':
-                this.charset = null;  // always reset charset
-                break;
-//        case '6':  // Back Index (DECBI), VT420 and up - not supported
-            case '7':  return this.DECSC();  // Save Cursor (DECSC)
-            case '8':  return this.DECRC();  // Restore Cursor (DECRC)
-//        case '9':  // Forward Index (DECFI), VT420 and up - not supported
-//        case '=':  // Application Keypad (DECKPAM)  // TODO
-//        case '>':  // Normal Keypad (DECKPNM)  // TODO
-//        case 'F':  // Cursor to lower left corner of screen  // TODO
-            case 'c':  return this.reset();  // Full Reset (RIS) http://vt100.net/docs/vt220-rm/chapter4.html
-//        case 'l':  // Memory Lock (per HP terminals). Locks memory above the cursor. - not supported
-//        case 'm':  // Memory Unlock (per HP terminals). - not supported
-//        case 'n':  // Invoke the G2 Character Set as GL (LS2). - not supported
-//        case 'o':  // Invoke the G3 Character Set as GL (LS3). - not supported
-//        case '|':  // Invoke the G3 Character Set as GR (LS3R). - not supported
-//        case '}':  // Invoke the G2 Character Set as GR (LS2R). - not supported
-//        case '~':  // Invoke the G1 Character Set as GR (LS1R). - not supported
-            case 'E':  return this.NEL();
-            case 'D':  return this.IND();
-            case 'M':  return this.RI();  //    ESC M   Reverse Index ( RI is 0x8d).
-            default :
-                console.log('inst_e unhandled:', collected, flag);
+        if (!collected) {
+            switch (flag) {
+                //case '6':  // Back Index (DECBI), VT420 and up - not supported
+                case '7':  return this.DECSC();  // Save Cursor (DECSC)
+                case '8':  return this.DECRC();  // Restore Cursor (DECRC)
+                //case '9':  // Forward Index (DECFI), VT420 and up - not supported
+                case 'D':  return this.IND();    // Index (IND is 0x84)
+                case 'E':  return this.NEL();    // Next Line (NEL is 0x85)
+                //case 'H':  //    ESC H   Tab Set (HTS is 0x88)  // TODO
+                case 'M':  return this.RI();     // Reverse Index (RI is 0x8d)
+                //case 'N':  // Single Shift Select of G2 Character Set ( SS2 is 0x8e) - not supported
+                //case 'O':  // Single Shift Select of G3 Character Set ( SS3 is 0x8f) - not supported
+                //case 'P':  // Device Control String (DCS is 0x90) - covered by parser
+                //case 'V':  // Start of Guarded Area (SPA is 0x96) - not supported
+                //case 'W':  // End of Guarded Area (EPA is 0x97) - not supported
+                //case 'X':  // Start of String (SOS is 0x98) - covered by parser (unsupported)
+                //case 'Z':  // Return Terminal ID (DECID is 0x9a). Obsolete form of CSI c (DA).  - not supported
+                //case '[':  // Control Sequence Introducer (CSI is 0x9b) - covered by parser
+                //case '\':  // String Terminator (ST is 0x9c) - covered by parser
+                //case ']':  //	Operating System Command (OSC is 0x9d) - covered by parser
+                //case '^':  //	Privacy Message (PM is 0x9e) - covered by parser (unsupported)
+                //case '_':  //	Application Program Command (APC is 0x9f) - covered by parser (unsupported)
+                //case '=':  // Application Keypad (DECKPAM)  // TODO
+                //case '>':  // Normal Keypad (DECKPNM)  // TODO
+                //case 'F':  // Cursor to lower left corner of screen  // TODO
+                case 'c':  return this.reset();  // Full Reset (RIS) http://vt100.net/docs/vt220-rm/chapter4.html
+                //case 'l':  // Memory Lock (per HP terminals). Locks memory above the cursor. - not supported
+                //case 'm':  // Memory Unlock (per HP terminals). - not supported
+                //case 'n':  // Invoke the G2 Character Set as GL (LS2). - not supported
+                //case 'o':  // Invoke the G3 Character Set as GL (LS3). - not supported
+                //case '|':  // Invoke the G3 Character Set as GR (LS3R). - not supported
+                //case '}':  // Invoke the G2 Character Set as GR (LS2R). - not supported
+                //case '~':  // Invoke the G1 Character Set as GR (LS1R). - not supported
+                default :  console.log('inst_e unhandled:', collected, flag);
+            }
+        } else if (collected == ' ') {
+            switch (flag) {
+                //case 'F':  // (SP) 7-bit controls (S7C1T) - not supported
+                //case 'G':  // (SP) 8-bit controls (S8C1T) - not supported
+                //case 'L':  // (SP) Set ANSI conformance level 1 (dpANS X3.134.1) - not supported
+                //case 'M':  // (SP) Set ANSI conformance level 2 (dpANS X3.134.1) - not supported
+                //case 'N':  // (SP) Set ANSI conformance level 3 (dpANS X3.134.1) - not supported
+                default :  console.log('inst_e unhandled:', collected, flag);
+            }
+        } else if (collected == '#') {
+            switch (flag) {
+                //case '3':  // (#) DEC double-height line, top half (DECDHL) - not supported
+                //case '4':  // (#) DEC double-height line, bottom half (DECDHL) - not supported
+                //case '5':  // (#) DEC single-width line (DECSWL) - not supported
+                //case '6':  // (#) DEC double-width line (DECDWL) - not supported
+                case '8':  return this.DECALN();  // (#) DEC Screen Alignment Test (DECALN)
+                default :  console.log('inst_e unhandled:', collected, flag);
+            }
+        } else if (collected == '%') {
+            switch (flag) {
+                //case '@':  // (%) Select default character set. That is ISO 8859-1 (ISO 2022) - not supported
+                //case 'G':  // (%) Select UTF-8 character set (ISO 2022) - not supported
+                default :  this.charset = null;  // always reset charset
+            }
+        } else if ('()*+'.indexOf(collected) != -1) {
+            switch (flag) {
+                case '0':
+                    this.charset = CHARSET_0;  // no extended character set support, only basic drawing symbols
+                    break;
+                default : this.charset = null;  // always reset charset
+            }
+        } else {
+            console.log('inst_e unhandled:', collected, flag);
         }
     };
 
+    /**
+     * inst_H - enter DCS handler state
+     * @note not implemented
+     * @param collected
+     * @param params
+     * @param flag
+     * @member module:node-ansiterminal.AnsiTerminal#inst_H
+     */
     AnsiTerminal.prototype.inst_H = function(collected, params, flag) {
         console.log('inst_H unhandled:', collected, params, flag);
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
     };
 
+    /**
+     * inst_P - handle DCS data
+     * @note not implemented
+     * @param data
+     * @member module:node-ansiterminal.AnsiTerminal#inst_P
+     */
     AnsiTerminal.prototype.inst_P = function(data) {
         console.log('inst_P unhandled:', data);
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
     };
 
+    /**
+     * inst_U - leave DCS handler state
+     * @note not implemented
+     * @member module:node-ansiterminal.AnsiTerminal#inst_U
+     */
     AnsiTerminal.prototype.inst_U = function() {
         console.log('inst_U unhandled');
         this.last_char = '';
+        this._rem_c = '';
         this.wrap = false;
     };
 
@@ -905,7 +1625,8 @@
      *  - overview http://www.vt100.net/docs/vt510-rm/chapter4
      *  - http://paulbourke.net/dataformats/ascii/
      *  - mouse support: http://manpages.ubuntu.com/manpages/intrepid/man4/console_codes.4.html
-     *  - sequences: http://docs2.attachmate.com/verastream/vhi/7.6sp1/en/index.jsp?topic=%2Fcom.attachmate.vhi.help%2Fhtml%2Freference%2Fcontrol_functions_sortbysequ.xhtml
+     *  - sequences: http://docs2.attachmate.com/verastream/vhi/7.6sp1/en/index.jsp?
+     *      topic=%2Fcom.attachmate.vhi.help%2Fhtml%2Freference%2Fcontrol_functions_sortbysequ.xhtml
      */
 
     /**
@@ -914,105 +1635,141 @@
      *
      */
 
-    // scroll down - http://vt100.net/docs/vt510-rm/SD
-    // FIXME: apply new buffer logic
+    /**
+     * DECALN - Screen Alignment Pattern
+     * @see {@link http://www.vt100.net/docs/vt510-rm/DECALN}
+     * @member module:node-ansiterminal.AnsiTerminal#DECALN
+     */
+    AnsiTerminal.prototype.DECALN = function() {
+        this.scrolling_top = 0;
+        this.scrolling_bottom = this.rows;
+        for (var i=0; i < this.screen.buffer.length; ++i) {
+            for (var j=0; j < this.screen.buffer[i].cells.length; ++j) {
+                this.screen.buffer[i].cells[j] = new TChar('E');
+            }
+        }
+        this.CUP([0, 0]);
+    };
+
+    /**
+     * SD - Scroll Down (Pan Up) - CSI Pn T
+     * Also SU moves scrolled out lines to scroll buffer, SD only adds new lines at the top.
+     * @see {@link http://vt100.net/docs/vt510-rm/SD}
+     * @param {Array} params - one numerical parameter (defaults to 1 even if 0 is given)
+     * @member module:node-ansiterminal.AnsiTerminal#SD
+     */
     AnsiTerminal.prototype.SD = function (params) {
-        var lines = (params[0]) ? params[0] : 1;
+        var lines = (params) ? (params[0] || 1) : 1;
         do {
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
+            var row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
             this.screen.buffer.splice(this.scrolling_top, 0, row);
             this.screen.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
     };
 
-    // scroll up - http://vt100.net/docs/vt510-rm/SU
-    // FIXME: apply new buffer logic
+    /**
+     * SU - Scroll Up (Pan Down) - CSI Pn S
+     * Scrolled out lines go into the scroll buffer.
+     * @see {@link http://vt100.net/docs/vt510-rm/SU}
+     * @param {Array} params - one numerical parameter (defaults to 1 even if 0 is given)
+     * @member module:node-ansiterminal.AnsiTerminal#SU
+     */
     AnsiTerminal.prototype.SU = function (params) {
-        var lines = (params[0]) ? params[0] : 1;
+        var lines = (params) ? (params[0] || 1) : 1;
         do {
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
+            var row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
             this.screen.buffer.splice(this.scrolling_bottom, 0, row);
-            this.screen.buffer.splice(this.scrolling_top, 1);
+            var scrolled_out = this.screen.buffer.splice(this.scrolling_top, 1)[0];
+            if (!this.scrolling_top) {
+                this.screen.appendToScrollBuffer(scrolled_out);
+            }
         } while (--lines);
+
     };
 
-    // repeat - Repeat the preceding graphic character P s times (REP).
-    // FIXME: hacky solution with this.last_char
+    /**
+     * REP - Repeat the preceding graphic character P s times (REP) - CSI Ps b
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#REP
+     */
+    // FIXME: hacky solution with this.last_char - needs unicode patch
     AnsiTerminal.prototype.REP = function (params) {
-        var s = '',
-            c = this.last_char,
-            n = (params[0]) ? params[0] : 1;
-        if (c) {
-            do {
-                s += c;
-            } while (--n);
-            // for max col we need to set col to width to take
-            // advantage of the autowrapping in inst_p
-            // FIXME: not true anymore
+        var n = (params) ? (params[0] || 1) : 1;
+        if (this.last_char) {
+            var wrap = this.wrap;
             if (this.cursor.col == this.cols - 1)
-                this.cursor.col = this.cols;
-            this.inst_p(s);
+                this.wrap = true;
+            this.inst_p(Array(n+1).join(this.last_char));
+            this.wrap = wrap;
             this.last_char = '';
         }
     };
 
-    // next line - http://vt100.net/docs/vt510-rm/NEL
+    /**
+     * NEL - Next Line - ESC E
+     * @see {@link http://vt100.net/docs/vt510-rm/NEL}
+     * @member module:node-ansiterminal.AnsiTerminal#NEL
+     */
     AnsiTerminal.prototype.NEL = function () {
-        this.cursor.row += 1;
-        if (this.cursor.row >= this.scrolling_bottom) {
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
-            this.screen.buffer.splice(this.scrolling_bottom, 0, row);
-            var scrolled_out = this.screen.buffer.splice(this.scrolling_top, 1)[0];
-            if (!this.scrolling_top)
-                this.screen.appendToScrollBuffer(scrolled_out);
-            this.cursor.row -= 1;
-        }
+        this.IND();
         this.cursor.col = 0;
     };
 
-    // index - http://vt100.net/docs/vt510-rm/IND
+    /**
+     * IND - Index - ESC D
+     * @see {@link http://vt100.net/docs/vt510-rm/NEL}
+     * @member module:node-ansiterminal.AnsiTerminal#NEL
+     */
     AnsiTerminal.prototype.IND = function () {
-        this.cursor.row += 1;
+        this.cursor.row++;
         if (this.cursor.row >= this.scrolling_bottom) {
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
-            this.screen.buffer.splice(this.scrolling_bottom, 0, row);
-            var scrolled_out = this.screen.buffer.splice(this.scrolling_top, 1)[0];
-            if (!this.scrolling_top)
-                this.screen.appendToScrollBuffer(scrolled_out);
-            this.cursor.row -= 1;
+            this.SU();
+            this.cursor.row--;
         }
     };
 
-    // vertical position relative - http://vt100.net/docs/vt510-rm/VPR
+    /**
+     * VPR - Vertical Position Relative - CSI Pn e
+     * @see {@link http://vt100.net/docs/vt510-rm/VPR}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#VPR
+     */
     AnsiTerminal.prototype.VPR = function (params) {
         this.cursor.row += ((params[0]) ? params[0] : 1);
         if (this.cursor.row >= this.rows)
             this.cursor.row = this.rows - 1;
     };
 
-    // horizontal position relative - http://vt100.net/docs/vt510-rm/HPR
+    /**
+     * HPR - Horizontal Position Relative - CSI Pn a
+     * @see {@link http://vt100.net/docs/vt510-rm/HPR}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#HPR
+     */
     AnsiTerminal.prototype.HPR = function (params) {
         this.cursor.col += ((params[0]) ? params[0] : 1);
         if (this.cursor.col >= this.cols)
             this.cursor.col = this.cols - 1;
     };
 
-    // horizontal position absolute - http://vt100.net/docs/vt510-rm/HPA
+    /**
+     * HPA - Horizontal Position Absolute - CSI Pn '
+     * @see {@link http://vt100.net/docs/vt510-rm/HPA}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#HPA
+     */
     AnsiTerminal.prototype.HPA = function (params) {
         this.cursor.col = ((params[0]) ? params[0] : 1) - 1;
         if (this.cursor.col >= this.cols)
             this.cursor.col = this.cols - 1;
     };
 
-    // cursor backward tabulation - http://vt100.net/docs/vt510-rm/CBT
+    /**
+     * CBT - Cursor Backward Tabulation - CSI Pn Z
+     * @see {@link http://vt100.net/docs/vt510-rm/CBT}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CBT
+     */
     AnsiTerminal.prototype.CBT = function (params) {
         this.cursor.col = (Math.floor((this.cursor.col - 1) / this.tab_width) + 1 -
         ((params[0]) ? params[0] : 1)) * this.tab_width;
@@ -1020,7 +1777,12 @@
             this.cursor.col = 0;
     };
 
-    // cursor horizontal forward tabulation - http://vt100.net/docs/vt510-rm/CHT
+    /**
+     * CHT - Cursor Horizontal Forward Tabulation - CSI Pn I
+     * @see {@link http://vt100.net/docs/vt510-rm/CHT}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CHT
+     */
     AnsiTerminal.prototype.CHT = function (params) {
         this.cursor.col = (Math.floor(this.cursor.col / this.tab_width) +
         ((params[0]) ? params[0] : 1)) * this.tab_width;
@@ -1028,7 +1790,12 @@
             this.cursor.col = this.cols - 1;
     };
 
-    // cursor previous line - http://vt100.net/docs/vt510-rm/CPL
+    /**
+     * CPL - Cursor Previous Line - CSI Pn F
+     * @see {@link http://vt100.net/docs/vt510-rm/CPL}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CPL
+     */
     AnsiTerminal.prototype.CPL = function (params) {
         this.cursor.row -= (params[0]) ? params[0] : 1;
         if (this.cursor.row < 0)
@@ -1036,7 +1803,12 @@
         this.cursor.col = 0;
     };
 
-    // cursor next line - http://vt100.net/docs/vt510-rm/CNL
+    /**
+     * CNL - Cursor Next Line - CSI Pn E
+     * @see {@link http://vt100.net/docs/vt510-rm/CNL}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CNL
+     */
     AnsiTerminal.prototype.CNL = function (params) {
         this.cursor.row += (params[0]) ? params[0] : 1;
         if (this.cursor.row >= this.rows)
@@ -1044,20 +1816,28 @@
         this.cursor.col = 0;
     };
 
-    // delete line - http://vt100.net/docs/vt510-rm/DL
+    /**
+     * DL - Delete Line - CSI Pn M
+     * @see {@link http://vt100.net/docs/vt510-rm/DL}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#DL
+     */
     AnsiTerminal.prototype.DL = function (params) {
         var lines = params[0] || 1;
         do {
             this.screen.buffer.splice(this.cursor.row, 1);
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
+            var row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
             this.screen.buffer.splice(this.scrolling_bottom - 1, 0, row);
         } while (--lines);
         this.cursor.col = 0; // see http://vt100.net/docs/vt220-rm/chapter4.html
     };
 
-    // insert character - http://vt100.net/docs/vt510-rm/ICH
+    /**
+     * ICH - Insert Character - CSI Pn @
+     * @see {@link http://vt100.net/docs/vt510-rm/ICH}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#ICH
+     */
     AnsiTerminal.prototype.ICH = function (params) {
         var chars = params[0] || 1;
         do {
@@ -1068,14 +1848,24 @@
         } while (--chars);
     };
 
-    // Vertical Line Position Absolute - http://vt100.net/docs/vt510-rm/VPA
+    /**
+     * VPA - Vertical Line Position Absolute - CSI Pn d
+     * @see {@link http://vt100.net/docs/vt510-rm/VPA}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#VPA
+     */
     AnsiTerminal.prototype.VPA = function (params) {
         this.cursor.row = ((params[0]) ? params[0] : 1) - 1;
         if (this.cursor.row >= this.rows)
             this.cursor.row = this.rows - 1;
     };
 
-    // erase character - http://vt100.net/docs/vt510-rm/ECH
+    /**
+     * ECH - Erase Character - CSI Pn X
+     * @see {@link http://vt100.net/docs/vt510-rm/ECH}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#ECH
+     */
     AnsiTerminal.prototype.ECH = function (params) {
         var erase = ((params[0]) ? params[0] : 1) + this.cursor.col;
         erase = (this.cols < erase) ? this.cols : erase;
@@ -1085,20 +1875,29 @@
         this.screen.buffer[this.cursor.row].version++;
     };
 
-    // Insert Line - http://vt100.net/docs/vt510-rm/IL
+    /**
+     * IL - Insert Line - CSI Pn L
+     * @see {@link http://vt100.net/docs/vt510-rm/IL}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#IL
+     */
     AnsiTerminal.prototype.IL = function (params) {
         var lines = (params[0]) ? params[0] : 1;
         do {  // FIXME ugly code - less splice possible?
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
+            var row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
             this.screen.buffer.splice(this.cursor.row, 0, row);
             this.screen.buffer.splice(this.scrolling_bottom, 1);
         } while (--lines);
         this.cursor.col = 0; // see http://vt100.net/docs/vt220-rm/chapter4.html
     };
 
-    // Set Top and Bottom Margins - http://vt100.net/docs/vt510-rm/DECSTBM
+    /**
+     * DECSTBM - Set Top and Bottom Margins - CSI Pt ; Pb r
+     * @see {@link http://vt100.net/docs/vt510-rm/DECSTBM}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#DECSTBM
+     * @note currently broken
+     */
     AnsiTerminal.prototype.DECSTBM = function (params) {
         var top = params[0] - 1 || 0;
         var bottom = params[1] || this.rows;
@@ -1108,11 +1907,15 @@
             this.scrolling_top = top;
             this.scrolling_bottom = bottom;
         }
-        // always set cursor to top (seems xterm always does this - bug?)
         this.cursor.row = 0;
+        this.cursor.col = 0;
     };
 
-    // soft terminal reset - http://vt100.net/docs/vt510-rm/DECSTR
+    /**
+     * DECSTR - Soft Terminal Reset - CSI ! p
+     * @see {@link http://vt100.net/docs/vt510-rm/DECSTR}
+     * @member module:node-ansiterminal.AnsiTerminal#DECSTR
+     */
     AnsiTerminal.prototype.DECSTR = function () {
         // DECTCEM      Text cursor enable          --> Cursor enabled.
         this.show_cursor = true;
@@ -1144,20 +1947,25 @@
         // TODO: do we need to reset LNM?
     };
 
-    // reverse index
+    /**
+     * RI - Reverse Index - ESC M
+     * @member module:node-ansiterminal.AnsiTerminal#RI
+     */
     AnsiTerminal.prototype.RI = function () {
         this.cursor.row -= 1;
         if (this.cursor.row < this.scrolling_top) {
             this.cursor.row = this.scrolling_top;
-            var row = new Row();
-            for (var j = 0; j < this.cols; ++j)
-                row.cells.push(new TChar('', this.textattributes, this.colors));
+            var row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
             this.screen.buffer.splice(this.scrolling_top, 0, row);
             this.screen.buffer.splice(this.scrolling_bottom, 1);
         }
     };
 
-    // save curor - http://vt100.net/docs/vt510-rm/DECSC
+    /**
+     * DECSC - Save Cursor - ESC 7
+     * @see {@link http://vt100.net/docs/vt510-rm/DECSC}
+     * @member module:node-ansiterminal.AnsiTerminal#DECSC
+     */
     AnsiTerminal.prototype.DECSC = function () {
         var save = {};
         save['cursor'] = {row: this.cursor.row, col: this.cursor.col};
@@ -1167,7 +1975,11 @@
         // FIXME: this.colors
     };
 
-    // restore cursor - http://vt100.net/docs/vt510-rm/DECRC
+    /**
+     * DECRC - Restore Cursor - ESC 8
+     * @see {@link http://vt100.net/docs/vt510-rm/DECRC}
+     * @member module:node-ansiterminal.AnsiTerminal#DECRC
+     */
     AnsiTerminal.prototype.DECRC = function () {
         // FIXME: this.colors
         if (this.cursor_save) {
@@ -1339,42 +2151,72 @@
         }
     };
 
-    // cursor horizontal absolute - http://vt100.net/docs/vt510-rm/CHA
+    /**
+     * CHA - Cursor Horizontal Absolute - CSI Pn G
+     * @see {@link http://vt100.net/docs/vt510-rm/CHA}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CHA
+     */
     AnsiTerminal.prototype.CHA = function (params) {
         this.cursor.col = ((params) ? (params[0] || 1) : 1) - 1;
         if (this.cursor.col >= this.cols)
             this.cursor.col = this.cols - 1;
     };
 
-    // cursor backward - http://vt100.net/docs/vt510-rm/CUB
+    /**
+     * CUB - Cursor Backward - CSI Pn D
+     * @see {@link http://vt100.net/docs/vt510-rm/CUB}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CUB
+     */
     AnsiTerminal.prototype.CUB = function (params) {
         this.cursor.col -= (params) ? (params[0] || 1) : 1;
         if (this.cursor.col < 0)
             this.cursor.col = 0;
     };
 
-    // cursor down - http://vt100.net/docs/vt510-rm/CUD
+    /**
+     * CUD - Cursor Down - CSI Pn B
+     * @see {@link http://vt100.net/docs/vt510-rm/CUD}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CUD
+     */
     AnsiTerminal.prototype.CUD = function (params) {
         this.cursor.row += (params) ? (params[0] || 1) : 1;
         if (this.cursor.row >= this.rows)
             this.cursor.row = this.rows - 1;
     };
 
-    // cursor forward - http://vt100.net/docs/vt510-rm/CUF
+    /**
+     * CUD - Cursor Forward - CSI Pn C
+     * @see {@link http://vt100.net/docs/vt510-rm/CUF}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CUF
+     */
     AnsiTerminal.prototype.CUF = function (params) {
         this.cursor.col += (params) ? (params[0] || 1) : 1;
         if (this.cursor.col >= this.cols)
             this.cursor.col = this.cols - 1;
     };
 
-    // cursor up - http://vt100.net/docs/vt510-rm/CUU
+    /**
+     * CUD - Cursor Up - CSI Pn A
+     * @see {@link http://vt100.net/docs/vt510-rm/CUU}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CUU
+     */
     AnsiTerminal.prototype.CUU = function (params) {
         this.cursor.row -= (params) ? (params[0] || 1) : 1;
         if (this.cursor.row < 0)
             this.cursor.row = 0;
     };
 
-    // cursor position - http://vt100.net/docs/vt510-rm/CUP
+    /**
+     * CUP - Cursor Position - CSI Pl ; Pc H
+     * @see {@link http://vt100.net/docs/vt510-rm/CUP}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#CUP
+     */
     AnsiTerminal.prototype.CUP = function (params) {
         this.cursor.row = ((params) ? (params[0] || 1) : 1) - 1;
         if (this.cursor.row >= this.rows)
@@ -1384,7 +2226,12 @@
             this.cursor.col = this.cols - 1;
     };
 
-    // delete character - http://vt100.net/docs/vt510-rm/DCH
+    /**
+     * DCH - Delete Character - CSI Pn P
+     * @see {@link http://vt100.net/docs/vt510-rm/DCH}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#DCH
+     */
     AnsiTerminal.prototype.DCH = function (params) {
         var removed = this.screen.buffer[this.cursor.row].cells.splice(this.cursor.col,
             (params) ? (params[0] || 1) : 1);
@@ -1393,9 +2240,14 @@
         this.screen.buffer[this.cursor.row].version++;
     };
 
-    // erase in display - http://vt100.net/docs/vt510-rm/ED
+    /**
+     * ED - Erase in Display - CSI Ps J
+     * @see {@link http://vt100.net/docs/vt510-rm/ED}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#ED
+     */
     AnsiTerminal.prototype.ED = function (params) {
-        var i, j, row;
+        var i, row;
         switch ((params) ? params[0] : 0) {
             case 0:
                 // from cursor to end of display
@@ -1403,9 +2255,7 @@
                 this.EL([0]);
                 // clear lower lines
                 for (i = this.cursor.row + 1; i < this.rows; ++i) {
-                    row = new Row();
-                    for (j = 0; j < this.cols; ++j)
-                        row.cells.push(new TChar('', this.textattributes, this.colors));
+                    row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
                     this.screen.buffer[i] = row;
                 }
                 break;
@@ -1413,9 +2263,7 @@
                 // from top of display to cursor
                 // clear upper lines
                 for (i = 0; i < this.cursor.row; ++i) {
-                    row = new Row();
-                    for (j = 0; j < this.cols; ++j)
-                        row.cells.push(new TChar('', this.textattributes, this.colors));
+                    row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
                     this.screen.buffer[i] = row;
                 }
                 // clear line up to cursor
@@ -1424,16 +2272,19 @@
             case 2:
                 // complete display
                 for (i = 0; i < this.rows; ++i) {
-                    row = new Row();
-                    for (j = 0; j < this.cols; ++j)
-                        row.cells.push(new TChar('', this.textattributes, this.colors));
+                    row = new TRow(this.cols, new TChar('', this.textattributes, this.colors));
                     this.screen.buffer[i] = row;
                 }
                 break;
         }
     };
 
-    // erase in line - http://vt100.net/docs/vt510-rm/EL
+    /**
+     * EL - Erase in Line - CSI Ps K
+     * @see {@link http://vt100.net/docs/vt510-rm/EL}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#EL
+     */
     AnsiTerminal.prototype.EL = function (params) {
         var i;
         switch ((params) ? params[0] : 0) {
@@ -1464,7 +2315,12 @@
         }
     };
 
-    // select graphic rendition - http://vt100.net/docs/vt510-rm/SGR
+    /**
+     * SGR - Select Graphic Rendition - CSI Ps ; Ps ... m
+     * @see {@link http://vt100.net/docs/vt510-rm/SGR}
+     * @param params
+     * @member module:node-ansiterminal.AnsiTerminal#SGR
+     */
     AnsiTerminal.prototype.SGR = function (params) {
         // load global attributes and colors
         var attr = this.textattributes;
@@ -1648,15 +2504,24 @@
         this.colors = colors;
     };
 
+    var to_export = {
+        wcswidth: wcswidth,
+        TChar: TChar,
+        TRow: TRow,
+        TScreen: TScreen,
+        AnsiTerminal: AnsiTerminal
+    };
+
+    /* istanbul ignore next */
     if (typeof module !== 'undefined' && typeof module['exports'] !== 'undefined') {
-        module['exports'] = AnsiTerminal;
+        module['exports'] = to_export;
     } else {
         if (typeof define === 'function' && define['amd']) {
             define([], function() {
-                return AnsiTerminal;
+                return to_export;
             });
         } else {
-            window['AnsiTerminal'] = AnsiTerminal;
+            window['ansiterminal'] = to_export;
         }
     }
 })();
