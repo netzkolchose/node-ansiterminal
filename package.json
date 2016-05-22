@@ -4,7 +4,8 @@
   "description": "An offscreen xterm like ANSI terminal library.",
   "main": "dist/ansiterminal.js",
   "scripts": {
-    "test": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec --timeout 7000",
+    "test": "mocha test"
+    "coverage": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec --timeout 10000",
     "minify": "node_modules/uglify-js/bin/uglifyjs --compress --mangle -- dist/ansiterminal.js > dist/ansiterminal.min.js",
     "doc": "node_modules/jsdoc-to-markdown/bin/cli.js dist/ansiterminal.js > doc/api.md",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
