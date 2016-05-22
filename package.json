@@ -1,10 +1,10 @@
 {
   "name": "node-ansiterminal",
-  "version": "0.2.0-beta",
-  "description": "An ANSI terminal for node-ansiparser.",
+  "version": "0.2.1-beta",
+  "description": "An offscreen xterm like ANSI terminal library.",
   "main": "dist/ansiterminal.js",
   "scripts": {
-    "test": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec --timeout 5000",
+    "test": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- -R spec --timeout 7000",
     "minify": "node_modules/uglify-js/bin/uglifyjs --compress --mangle -- dist/ansiterminal.js > dist/ansiterminal.min.js",
     "doc": "node_modules/jsdoc-to-markdown/bin/cli.js dist/ansiterminal.js > doc/api.md",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
@@ -27,7 +27,9 @@
   },
   "keywords": [
     "ansi",
-    "terminal"
+    "terminal",
+    "xterm",
+    "emulator"
   ],
   "author": "Joerg Breitbart <j.breitbart@netzkolchose.de>",
   "license": "MIT",
