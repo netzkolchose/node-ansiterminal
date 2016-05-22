@@ -81,7 +81,7 @@
      * Calculate print space of a string. The returned number denotes the taken
      * halfwidth space.
      * @note    Terminals and fonts may behave differently for some codepoints since unicode
-     *          knows more widths than half- and fullwidth.
+     *          knows more widths than half and full width.
      * @param {string} s - single character or string
      * @return {number} halfwidth length of the string
      * @function module:node-ansiterminal.wcswidth
@@ -205,6 +205,7 @@
                 return _width_wcwidth(str, opts);
             var s = 0;
             for (var i = 0; i < str.length; i++) {
+                // FIXME: apply patch for high unicode chars (see print_p)
                 var n = _width_wcwidth(str.charCodeAt(i), opts);
                 if (n < 0)
                     return -1;
@@ -1068,7 +1069,11 @@
 
 
     /**
-     * AnsiTerminal - an offscreen xterm like terminal.
+     * The constructor creates a new terminal object with
+     * `cols` width and `rows` height. The `scrollLength` parameter
+     * is the max history length (number of lines) of the normal screen buffer.
+     *
+     * @classdesc AnsiTerminal - an offscreen xterm like terminal.
      *
      * The terminal implements the interface of node-ansiparser.
      * Since the parser calls the methods directly this terminal has
@@ -1101,6 +1106,8 @@
      * console.log(terminal.toString());
      * ```
      */
+    // TODO: move cursor abstraction to TScreen
+    // TODO: implement terminal wide text attribute getter and setter (see TChar)
     function AnsiTerminal(cols, rows, scrollLength) {
         this.rows = rows;
         this.cols = cols;
@@ -1115,7 +1122,7 @@
     /**
      * Hard reset of the terminal.
      *
-     * @member module:node-ansiterminal.AnsiTerminal#reset
+     * @method module:node-ansiterminal.AnsiTerminal#reset
      */
     AnsiTerminal.prototype.reset = function () {
         this.normal_screen = new TScreen(this.cols, this.rows, this.scrollLength);
@@ -1142,7 +1149,6 @@
         this.newline_mode = false;              // LNM
         this.tab_width = 8;
         this.last_char = '';                    // for REP
-        //this.clearScrollBuffer();
         this.mouse_mode = 0;                    // tracking modes for mouse 0=off, (9, 1000, 1001, 1002, 1003)
         this.mouse_protocol = 0;                // 0 (normal), 1005 (utf-8), 1006 (sgr), 1015 (decimal)
 
@@ -1159,7 +1165,7 @@
      * String representation of active terminal buffer.
      * @param opts
      * @return {string}
-     * @member module:node-ansiterminal.AnsiTerminal#toString
+     * @method module:node-ansiterminal.AnsiTerminal#toString
      */
     AnsiTerminal.prototype.toString = function(opts) {
         var s = '';
@@ -1175,7 +1181,7 @@
      *  
      * @param {number} cols     - new columns value
      * @param {number} rows     - new rows value
-     * @member module:node-ansiterminal.AnsiTerminal#resize
+     * @method module:node-ansiterminal.AnsiTerminal#resize
      */
     AnsiTerminal.prototype.resize = function(cols, rows) {
         // skip insane values
@@ -1183,11 +1189,9 @@
             return false;
         
         // normal scroll buffer
-        //this._resize(cols, rows, this.normal_buffer, this.normal_cursor, true);
         this.normal_screen.resize(cols, rows, this.normal_cursor);
         
         // alternative buffer
-        //this._resize(cols, rows, this.alternate_buffer, this.alternate_cursor, false);
         this.alternate_screen.resize(cols, rows, this.alternate_cursor);
         
         // set new rows / cols to terminal
@@ -1213,7 +1217,7 @@
      * half and full width print space according to unicode.
      *
      * @param {string} s
-     * @member module:node-ansiterminal.AnsiTerminal#inst_p
+     * @method module:node-ansiterminal.AnsiTerminal#inst_p
      */
     AnsiTerminal.prototype.inst_p = function(s) {
         if (this.debug)
@@ -1346,7 +1350,7 @@
     /**
      * inst_o - handle OSC instruction
      * @param s
-     * @member module:node-ansiterminal.AnsiTerminal#inst_o
+     * @method module:node-ansiterminal.AnsiTerminal#inst_o
      */
     AnsiTerminal.prototype.inst_o = function(s) {
         if (this.debug)
@@ -1363,7 +1367,7 @@
     /**
      * inst_x - handle single character instruction
      * @param flag
-     * @member module:node-ansiterminal.AnsiTerminal#inst_x
+     * @method module:node-ansiterminal.AnsiTerminal#inst_x
      */
     AnsiTerminal.prototype.inst_x = function (flag) {
         if (this.debug)
@@ -1413,7 +1417,7 @@
      * @param collected
      * @param params
      * @param flag
-     * @member module:node-ansiterminal.AnsiTerminal#inst_c
+     * @method module:node-ansiterminal.AnsiTerminal#inst_c
      */
     AnsiTerminal.prototype.inst_c = function(collected, params, flag) {
         if (this.debug)
@@ -1498,7 +1502,7 @@
      * inst_e - handle ESC instruction
      * @param collected
      * @param flag
-     * @member module:node-ansiterminal.AnsiTerminal#inst_e
+     * @method module:node-ansiterminal.AnsiTerminal#inst_e
      */
     AnsiTerminal.prototype.inst_e = function(collected, flag) {
         if (this.debug)
@@ -1583,7 +1587,7 @@
      * @param collected
      * @param params
      * @param flag
-     * @member module:node-ansiterminal.AnsiTerminal#inst_H
+     * @method module:node-ansiterminal.AnsiTerminal#inst_H
      */
     AnsiTerminal.prototype.inst_H = function(collected, params, flag) {
         console.log('inst_H unhandled:', collected, params, flag);
@@ -1596,7 +1600,7 @@
      * inst_P - handle DCS data
      * @note not implemented
      * @param data
-     * @member module:node-ansiterminal.AnsiTerminal#inst_P
+     * @method module:node-ansiterminal.AnsiTerminal#inst_P
      */
     AnsiTerminal.prototype.inst_P = function(data) {
         console.log('inst_P unhandled:', data);
@@ -1608,7 +1612,7 @@
     /**
      * inst_U - leave DCS handler state
      * @note not implemented
-     * @member module:node-ansiterminal.AnsiTerminal#inst_U
+     * @method module:node-ansiterminal.AnsiTerminal#inst_U
      */
     AnsiTerminal.prototype.inst_U = function() {
         console.log('inst_U unhandled');
@@ -1638,7 +1642,7 @@
     /**
      * DECALN - Screen Alignment Pattern
      * @see {@link http://www.vt100.net/docs/vt510-rm/DECALN}
-     * @member module:node-ansiterminal.AnsiTerminal#DECALN
+     * @method module:node-ansiterminal.AnsiTerminal#DECALN
      */
     AnsiTerminal.prototype.DECALN = function() {
         this.scrolling_top = 0;
@@ -1656,7 +1660,7 @@
      * Also SU moves scrolled out lines to scroll buffer, SD only adds new lines at the top.
      * @see {@link http://vt100.net/docs/vt510-rm/SD}
      * @param {Array} params - one numerical parameter (defaults to 1 even if 0 is given)
-     * @member module:node-ansiterminal.AnsiTerminal#SD
+     * @method module:node-ansiterminal.AnsiTerminal#SD
      */
     AnsiTerminal.prototype.SD = function (params) {
         var lines = (params) ? (params[0] || 1) : 1;
@@ -1672,7 +1676,7 @@
      * Scrolled out lines go into the scroll buffer.
      * @see {@link http://vt100.net/docs/vt510-rm/SU}
      * @param {Array} params - one numerical parameter (defaults to 1 even if 0 is given)
-     * @member module:node-ansiterminal.AnsiTerminal#SU
+     * @method module:node-ansiterminal.AnsiTerminal#SU
      */
     AnsiTerminal.prototype.SU = function (params) {
         var lines = (params) ? (params[0] || 1) : 1;
@@ -1690,7 +1694,7 @@
     /**
      * REP - Repeat the preceding graphic character P s times (REP) - CSI Ps b
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#REP
+     * @method module:node-ansiterminal.AnsiTerminal#REP
      */
     // FIXME: hacky solution with this.last_char - needs unicode patch
     AnsiTerminal.prototype.REP = function (params) {
@@ -1708,7 +1712,7 @@
     /**
      * NEL - Next Line - ESC E
      * @see {@link http://vt100.net/docs/vt510-rm/NEL}
-     * @member module:node-ansiterminal.AnsiTerminal#NEL
+     * @method module:node-ansiterminal.AnsiTerminal#NEL
      */
     AnsiTerminal.prototype.NEL = function () {
         this.IND();
@@ -1717,8 +1721,8 @@
 
     /**
      * IND - Index - ESC D
-     * @see {@link http://vt100.net/docs/vt510-rm/NEL}
-     * @member module:node-ansiterminal.AnsiTerminal#NEL
+     * @see {@link http://vt100.net/docs/vt510-rm/IND}
+     * @method module:node-ansiterminal.AnsiTerminal#IND
      */
     AnsiTerminal.prototype.IND = function () {
         this.cursor.row++;
@@ -1732,7 +1736,7 @@
      * VPR - Vertical Position Relative - CSI Pn e
      * @see {@link http://vt100.net/docs/vt510-rm/VPR}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#VPR
+     * @method module:node-ansiterminal.AnsiTerminal#VPR
      */
     AnsiTerminal.prototype.VPR = function (params) {
         this.cursor.row += ((params[0]) ? params[0] : 1);
@@ -1744,7 +1748,7 @@
      * HPR - Horizontal Position Relative - CSI Pn a
      * @see {@link http://vt100.net/docs/vt510-rm/HPR}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#HPR
+     * @method module:node-ansiterminal.AnsiTerminal#HPR
      */
     AnsiTerminal.prototype.HPR = function (params) {
         this.cursor.col += ((params[0]) ? params[0] : 1);
@@ -1756,7 +1760,7 @@
      * HPA - Horizontal Position Absolute - CSI Pn '
      * @see {@link http://vt100.net/docs/vt510-rm/HPA}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#HPA
+     * @method module:node-ansiterminal.AnsiTerminal#HPA
      */
     AnsiTerminal.prototype.HPA = function (params) {
         this.cursor.col = ((params[0]) ? params[0] : 1) - 1;
@@ -1768,7 +1772,7 @@
      * CBT - Cursor Backward Tabulation - CSI Pn Z
      * @see {@link http://vt100.net/docs/vt510-rm/CBT}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CBT
+     * @method module:node-ansiterminal.AnsiTerminal#CBT
      */
     AnsiTerminal.prototype.CBT = function (params) {
         this.cursor.col = (Math.floor((this.cursor.col - 1) / this.tab_width) + 1 -
@@ -1781,7 +1785,7 @@
      * CHT - Cursor Horizontal Forward Tabulation - CSI Pn I
      * @see {@link http://vt100.net/docs/vt510-rm/CHT}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CHT
+     * @method module:node-ansiterminal.AnsiTerminal#CHT
      */
     AnsiTerminal.prototype.CHT = function (params) {
         this.cursor.col = (Math.floor(this.cursor.col / this.tab_width) +
@@ -1794,7 +1798,7 @@
      * CPL - Cursor Previous Line - CSI Pn F
      * @see {@link http://vt100.net/docs/vt510-rm/CPL}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CPL
+     * @method module:node-ansiterminal.AnsiTerminal#CPL
      */
     AnsiTerminal.prototype.CPL = function (params) {
         this.cursor.row -= (params[0]) ? params[0] : 1;
@@ -1807,7 +1811,7 @@
      * CNL - Cursor Next Line - CSI Pn E
      * @see {@link http://vt100.net/docs/vt510-rm/CNL}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CNL
+     * @method module:node-ansiterminal.AnsiTerminal#CNL
      */
     AnsiTerminal.prototype.CNL = function (params) {
         this.cursor.row += (params[0]) ? params[0] : 1;
@@ -1820,7 +1824,7 @@
      * DL - Delete Line - CSI Pn M
      * @see {@link http://vt100.net/docs/vt510-rm/DL}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#DL
+     * @method module:node-ansiterminal.AnsiTerminal#DL
      */
     AnsiTerminal.prototype.DL = function (params) {
         var lines = params[0] || 1;
@@ -1836,7 +1840,7 @@
      * ICH - Insert Character - CSI Pn @
      * @see {@link http://vt100.net/docs/vt510-rm/ICH}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#ICH
+     * @method module:node-ansiterminal.AnsiTerminal#ICH
      */
     AnsiTerminal.prototype.ICH = function (params) {
         var chars = params[0] || 1;
@@ -1852,7 +1856,7 @@
      * VPA - Vertical Line Position Absolute - CSI Pn d
      * @see {@link http://vt100.net/docs/vt510-rm/VPA}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#VPA
+     * @method module:node-ansiterminal.AnsiTerminal#VPA
      */
     AnsiTerminal.prototype.VPA = function (params) {
         this.cursor.row = ((params[0]) ? params[0] : 1) - 1;
@@ -1864,7 +1868,7 @@
      * ECH - Erase Character - CSI Pn X
      * @see {@link http://vt100.net/docs/vt510-rm/ECH}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#ECH
+     * @method module:node-ansiterminal.AnsiTerminal#ECH
      */
     AnsiTerminal.prototype.ECH = function (params) {
         var erase = ((params[0]) ? params[0] : 1) + this.cursor.col;
@@ -1879,7 +1883,7 @@
      * IL - Insert Line - CSI Pn L
      * @see {@link http://vt100.net/docs/vt510-rm/IL}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#IL
+     * @method module:node-ansiterminal.AnsiTerminal#IL
      */
     AnsiTerminal.prototype.IL = function (params) {
         var lines = (params[0]) ? params[0] : 1;
@@ -1895,7 +1899,7 @@
      * DECSTBM - Set Top and Bottom Margins - CSI Pt ; Pb r
      * @see {@link http://vt100.net/docs/vt510-rm/DECSTBM}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#DECSTBM
+     * @method module:node-ansiterminal.AnsiTerminal#DECSTBM
      * @note currently broken
      */
     AnsiTerminal.prototype.DECSTBM = function (params) {
@@ -1914,7 +1918,7 @@
     /**
      * DECSTR - Soft Terminal Reset - CSI ! p
      * @see {@link http://vt100.net/docs/vt510-rm/DECSTR}
-     * @member module:node-ansiterminal.AnsiTerminal#DECSTR
+     * @method module:node-ansiterminal.AnsiTerminal#DECSTR
      */
     AnsiTerminal.prototype.DECSTR = function () {
         // DECTCEM      Text cursor enable          --> Cursor enabled.
@@ -1949,7 +1953,7 @@
 
     /**
      * RI - Reverse Index - ESC M
-     * @member module:node-ansiterminal.AnsiTerminal#RI
+     * @method module:node-ansiterminal.AnsiTerminal#RI
      */
     AnsiTerminal.prototype.RI = function () {
         this.cursor.row -= 1;
@@ -1964,7 +1968,7 @@
     /**
      * DECSC - Save Cursor - ESC 7
      * @see {@link http://vt100.net/docs/vt510-rm/DECSC}
-     * @member module:node-ansiterminal.AnsiTerminal#DECSC
+     * @method module:node-ansiterminal.AnsiTerminal#DECSC
      */
     AnsiTerminal.prototype.DECSC = function () {
         var save = {};
@@ -1978,7 +1982,7 @@
     /**
      * DECRC - Restore Cursor - ESC 8
      * @see {@link http://vt100.net/docs/vt510-rm/DECRC}
-     * @member module:node-ansiterminal.AnsiTerminal#DECRC
+     * @method module:node-ansiterminal.AnsiTerminal#DECRC
      */
     AnsiTerminal.prototype.DECRC = function () {
         // FIXME: this.colors
@@ -2155,7 +2159,7 @@
      * CHA - Cursor Horizontal Absolute - CSI Pn G
      * @see {@link http://vt100.net/docs/vt510-rm/CHA}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CHA
+     * @method module:node-ansiterminal.AnsiTerminal#CHA
      */
     AnsiTerminal.prototype.CHA = function (params) {
         this.cursor.col = ((params) ? (params[0] || 1) : 1) - 1;
@@ -2167,7 +2171,7 @@
      * CUB - Cursor Backward - CSI Pn D
      * @see {@link http://vt100.net/docs/vt510-rm/CUB}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CUB
+     * @method module:node-ansiterminal.AnsiTerminal#CUB
      */
     AnsiTerminal.prototype.CUB = function (params) {
         this.cursor.col -= (params) ? (params[0] || 1) : 1;
@@ -2179,7 +2183,7 @@
      * CUD - Cursor Down - CSI Pn B
      * @see {@link http://vt100.net/docs/vt510-rm/CUD}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CUD
+     * @method module:node-ansiterminal.AnsiTerminal#CUD
      */
     AnsiTerminal.prototype.CUD = function (params) {
         this.cursor.row += (params) ? (params[0] || 1) : 1;
@@ -2191,7 +2195,7 @@
      * CUD - Cursor Forward - CSI Pn C
      * @see {@link http://vt100.net/docs/vt510-rm/CUF}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CUF
+     * @method module:node-ansiterminal.AnsiTerminal#CUF
      */
     AnsiTerminal.prototype.CUF = function (params) {
         this.cursor.col += (params) ? (params[0] || 1) : 1;
@@ -2203,7 +2207,7 @@
      * CUD - Cursor Up - CSI Pn A
      * @see {@link http://vt100.net/docs/vt510-rm/CUU}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CUU
+     * @method module:node-ansiterminal.AnsiTerminal#CUU
      */
     AnsiTerminal.prototype.CUU = function (params) {
         this.cursor.row -= (params) ? (params[0] || 1) : 1;
@@ -2215,7 +2219,7 @@
      * CUP - Cursor Position - CSI Pl ; Pc H
      * @see {@link http://vt100.net/docs/vt510-rm/CUP}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#CUP
+     * @method module:node-ansiterminal.AnsiTerminal#CUP
      */
     AnsiTerminal.prototype.CUP = function (params) {
         this.cursor.row = ((params) ? (params[0] || 1) : 1) - 1;
@@ -2230,7 +2234,7 @@
      * DCH - Delete Character - CSI Pn P
      * @see {@link http://vt100.net/docs/vt510-rm/DCH}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#DCH
+     * @method module:node-ansiterminal.AnsiTerminal#DCH
      */
     AnsiTerminal.prototype.DCH = function (params) {
         var removed = this.screen.buffer[this.cursor.row].cells.splice(this.cursor.col,
@@ -2244,7 +2248,7 @@
      * ED - Erase in Display - CSI Ps J
      * @see {@link http://vt100.net/docs/vt510-rm/ED}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#ED
+     * @method module:node-ansiterminal.AnsiTerminal#ED
      */
     AnsiTerminal.prototype.ED = function (params) {
         var i, row;
@@ -2283,7 +2287,7 @@
      * EL - Erase in Line - CSI Ps K
      * @see {@link http://vt100.net/docs/vt510-rm/EL}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#EL
+     * @method module:node-ansiterminal.AnsiTerminal#EL
      */
     AnsiTerminal.prototype.EL = function (params) {
         var i;
@@ -2319,7 +2323,7 @@
      * SGR - Select Graphic Rendition - CSI Ps ; Ps ... m
      * @see {@link http://vt100.net/docs/vt510-rm/SGR}
      * @param params
-     * @member module:node-ansiterminal.AnsiTerminal#SGR
+     * @method module:node-ansiterminal.AnsiTerminal#SGR
      */
     AnsiTerminal.prototype.SGR = function (params) {
         // load global attributes and colors

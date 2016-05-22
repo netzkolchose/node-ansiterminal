@@ -32,50 +32,50 @@ var ansiterminal = require('node-ansiterminal')
                 * [.deserialize(o)](#module_node-ansiterminal.TRow.deserialize) ⇒ <code>[TRow](#module_node-ansiterminal.TRow)</code>
         * [.AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)
             * [new AnsiTerminal(cols, rows, scrollLength)](#new_module_node-ansiterminal.AnsiTerminal_new)
-            * [.reset](#module_node-ansiterminal.AnsiTerminal+reset)
-            * [.toString](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
-            * [.resize](#module_node-ansiterminal.AnsiTerminal+resize)
-            * [.inst_p](#module_node-ansiterminal.AnsiTerminal+inst_p)
-            * [.inst_o](#module_node-ansiterminal.AnsiTerminal+inst_o)
-            * [.inst_x](#module_node-ansiterminal.AnsiTerminal+inst_x)
-            * [.inst_c](#module_node-ansiterminal.AnsiTerminal+inst_c)
-            * [.inst_e](#module_node-ansiterminal.AnsiTerminal+inst_e)
-            * [.inst_H](#module_node-ansiterminal.AnsiTerminal+inst_H)
-            * [.inst_P](#module_node-ansiterminal.AnsiTerminal+inst_P)
-            * [.inst_U](#module_node-ansiterminal.AnsiTerminal+inst_U)
-            * [.DECALN](#module_node-ansiterminal.AnsiTerminal+DECALN)
-            * [.SD](#module_node-ansiterminal.AnsiTerminal+SD)
-            * [.SU](#module_node-ansiterminal.AnsiTerminal+SU)
-            * [.REP](#module_node-ansiterminal.AnsiTerminal+REP)
-            * [.NEL](#module_node-ansiterminal.AnsiTerminal+NEL)
-            * [.NEL](#module_node-ansiterminal.AnsiTerminal+NEL)
-            * [.VPR](#module_node-ansiterminal.AnsiTerminal+VPR)
-            * [.HPR](#module_node-ansiterminal.AnsiTerminal+HPR)
-            * [.HPA](#module_node-ansiterminal.AnsiTerminal+HPA)
-            * [.CBT](#module_node-ansiterminal.AnsiTerminal+CBT)
-            * [.CHT](#module_node-ansiterminal.AnsiTerminal+CHT)
-            * [.CPL](#module_node-ansiterminal.AnsiTerminal+CPL)
-            * [.CNL](#module_node-ansiterminal.AnsiTerminal+CNL)
-            * [.DL](#module_node-ansiterminal.AnsiTerminal+DL)
-            * [.ICH](#module_node-ansiterminal.AnsiTerminal+ICH)
-            * [.VPA](#module_node-ansiterminal.AnsiTerminal+VPA)
-            * [.ECH](#module_node-ansiterminal.AnsiTerminal+ECH)
-            * [.IL](#module_node-ansiterminal.AnsiTerminal+IL)
-            * [.DECSTBM](#module_node-ansiterminal.AnsiTerminal+DECSTBM)
-            * [.DECSTR](#module_node-ansiterminal.AnsiTerminal+DECSTR)
-            * [.RI](#module_node-ansiterminal.AnsiTerminal+RI)
-            * [.DECSC](#module_node-ansiterminal.AnsiTerminal+DECSC)
-            * [.DECRC](#module_node-ansiterminal.AnsiTerminal+DECRC)
-            * [.CHA](#module_node-ansiterminal.AnsiTerminal+CHA)
-            * [.CUB](#module_node-ansiterminal.AnsiTerminal+CUB)
-            * [.CUD](#module_node-ansiterminal.AnsiTerminal+CUD)
-            * [.CUF](#module_node-ansiterminal.AnsiTerminal+CUF)
-            * [.CUU](#module_node-ansiterminal.AnsiTerminal+CUU)
-            * [.CUP](#module_node-ansiterminal.AnsiTerminal+CUP)
-            * [.DCH](#module_node-ansiterminal.AnsiTerminal+DCH)
-            * [.ED](#module_node-ansiterminal.AnsiTerminal+ED)
-            * [.EL](#module_node-ansiterminal.AnsiTerminal+EL)
-            * [.SGR](#module_node-ansiterminal.AnsiTerminal+SGR)
+            * [.reset()](#module_node-ansiterminal.AnsiTerminal+reset)
+            * [.toString(opts)](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
+            * [.resize(cols, rows)](#module_node-ansiterminal.AnsiTerminal+resize)
+            * [.inst_p(s)](#module_node-ansiterminal.AnsiTerminal+inst_p)
+            * [.inst_o(s)](#module_node-ansiterminal.AnsiTerminal+inst_o)
+            * [.inst_x(flag)](#module_node-ansiterminal.AnsiTerminal+inst_x)
+            * [.inst_c(collected, params, flag)](#module_node-ansiterminal.AnsiTerminal+inst_c)
+            * [.inst_e(collected, flag)](#module_node-ansiterminal.AnsiTerminal+inst_e)
+            * [.inst_H(collected, params, flag)](#module_node-ansiterminal.AnsiTerminal+inst_H)
+            * [.inst_P(data)](#module_node-ansiterminal.AnsiTerminal+inst_P)
+            * [.inst_U()](#module_node-ansiterminal.AnsiTerminal+inst_U)
+            * [.DECALN()](#module_node-ansiterminal.AnsiTerminal+DECALN)
+            * [.SD(params)](#module_node-ansiterminal.AnsiTerminal+SD)
+            * [.SU(params)](#module_node-ansiterminal.AnsiTerminal+SU)
+            * [.REP(params)](#module_node-ansiterminal.AnsiTerminal+REP)
+            * [.NEL()](#module_node-ansiterminal.AnsiTerminal+NEL)
+            * [.IND()](#module_node-ansiterminal.AnsiTerminal+IND)
+            * [.VPR(params)](#module_node-ansiterminal.AnsiTerminal+VPR)
+            * [.HPR(params)](#module_node-ansiterminal.AnsiTerminal+HPR)
+            * [.HPA(params)](#module_node-ansiterminal.AnsiTerminal+HPA)
+            * [.CBT(params)](#module_node-ansiterminal.AnsiTerminal+CBT)
+            * [.CHT(params)](#module_node-ansiterminal.AnsiTerminal+CHT)
+            * [.CPL(params)](#module_node-ansiterminal.AnsiTerminal+CPL)
+            * [.CNL(params)](#module_node-ansiterminal.AnsiTerminal+CNL)
+            * [.DL(params)](#module_node-ansiterminal.AnsiTerminal+DL)
+            * [.ICH(params)](#module_node-ansiterminal.AnsiTerminal+ICH)
+            * [.VPA(params)](#module_node-ansiterminal.AnsiTerminal+VPA)
+            * [.ECH(params)](#module_node-ansiterminal.AnsiTerminal+ECH)
+            * [.IL(params)](#module_node-ansiterminal.AnsiTerminal+IL)
+            * [.DECSTBM(params)](#module_node-ansiterminal.AnsiTerminal+DECSTBM)
+            * [.DECSTR()](#module_node-ansiterminal.AnsiTerminal+DECSTR)
+            * [.RI()](#module_node-ansiterminal.AnsiTerminal+RI)
+            * [.DECSC()](#module_node-ansiterminal.AnsiTerminal+DECSC)
+            * [.DECRC()](#module_node-ansiterminal.AnsiTerminal+DECRC)
+            * [.CHA(params)](#module_node-ansiterminal.AnsiTerminal+CHA)
+            * [.CUB(params)](#module_node-ansiterminal.AnsiTerminal+CUB)
+            * [.CUD(params)](#module_node-ansiterminal.AnsiTerminal+CUD)
+            * [.CUF(params)](#module_node-ansiterminal.AnsiTerminal+CUF)
+            * [.CUU(params)](#module_node-ansiterminal.AnsiTerminal+CUU)
+            * [.CUP(params)](#module_node-ansiterminal.AnsiTerminal+CUP)
+            * [.DCH(params)](#module_node-ansiterminal.AnsiTerminal+DCH)
+            * [.ED(params)](#module_node-ansiterminal.AnsiTerminal+ED)
+            * [.EL(params)](#module_node-ansiterminal.AnsiTerminal+EL)
+            * [.SGR(params)](#module_node-ansiterminal.AnsiTerminal+SGR)
         * [.wcswidth(s)](#module_node-ansiterminal.wcswidth) ⇒ <code>number</code>
         * [.get_color(value)](#module_node-ansiterminal.get_color) ⇒ <code>string</code>
     * _inner_
@@ -397,58 +397,6 @@ Deserialize a TRow.
 <a name="module_node-ansiterminal.AnsiTerminal"></a>
 
 ### ansiterminal.AnsiTerminal
-**Kind**: static class of <code>[node-ansiterminal](#module_node-ansiterminal)</code>  
-
-* [.AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)
-    * [new AnsiTerminal(cols, rows, scrollLength)](#new_module_node-ansiterminal.AnsiTerminal_new)
-    * [.reset](#module_node-ansiterminal.AnsiTerminal+reset)
-    * [.toString](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
-    * [.resize](#module_node-ansiterminal.AnsiTerminal+resize)
-    * [.inst_p](#module_node-ansiterminal.AnsiTerminal+inst_p)
-    * [.inst_o](#module_node-ansiterminal.AnsiTerminal+inst_o)
-    * [.inst_x](#module_node-ansiterminal.AnsiTerminal+inst_x)
-    * [.inst_c](#module_node-ansiterminal.AnsiTerminal+inst_c)
-    * [.inst_e](#module_node-ansiterminal.AnsiTerminal+inst_e)
-    * [.inst_H](#module_node-ansiterminal.AnsiTerminal+inst_H)
-    * [.inst_P](#module_node-ansiterminal.AnsiTerminal+inst_P)
-    * [.inst_U](#module_node-ansiterminal.AnsiTerminal+inst_U)
-    * [.DECALN](#module_node-ansiterminal.AnsiTerminal+DECALN)
-    * [.SD](#module_node-ansiterminal.AnsiTerminal+SD)
-    * [.SU](#module_node-ansiterminal.AnsiTerminal+SU)
-    * [.REP](#module_node-ansiterminal.AnsiTerminal+REP)
-    * [.NEL](#module_node-ansiterminal.AnsiTerminal+NEL)
-    * [.NEL](#module_node-ansiterminal.AnsiTerminal+NEL)
-    * [.VPR](#module_node-ansiterminal.AnsiTerminal+VPR)
-    * [.HPR](#module_node-ansiterminal.AnsiTerminal+HPR)
-    * [.HPA](#module_node-ansiterminal.AnsiTerminal+HPA)
-    * [.CBT](#module_node-ansiterminal.AnsiTerminal+CBT)
-    * [.CHT](#module_node-ansiterminal.AnsiTerminal+CHT)
-    * [.CPL](#module_node-ansiterminal.AnsiTerminal+CPL)
-    * [.CNL](#module_node-ansiterminal.AnsiTerminal+CNL)
-    * [.DL](#module_node-ansiterminal.AnsiTerminal+DL)
-    * [.ICH](#module_node-ansiterminal.AnsiTerminal+ICH)
-    * [.VPA](#module_node-ansiterminal.AnsiTerminal+VPA)
-    * [.ECH](#module_node-ansiterminal.AnsiTerminal+ECH)
-    * [.IL](#module_node-ansiterminal.AnsiTerminal+IL)
-    * [.DECSTBM](#module_node-ansiterminal.AnsiTerminal+DECSTBM)
-    * [.DECSTR](#module_node-ansiterminal.AnsiTerminal+DECSTR)
-    * [.RI](#module_node-ansiterminal.AnsiTerminal+RI)
-    * [.DECSC](#module_node-ansiterminal.AnsiTerminal+DECSC)
-    * [.DECRC](#module_node-ansiterminal.AnsiTerminal+DECRC)
-    * [.CHA](#module_node-ansiterminal.AnsiTerminal+CHA)
-    * [.CUB](#module_node-ansiterminal.AnsiTerminal+CUB)
-    * [.CUD](#module_node-ansiterminal.AnsiTerminal+CUD)
-    * [.CUF](#module_node-ansiterminal.AnsiTerminal+CUF)
-    * [.CUU](#module_node-ansiterminal.AnsiTerminal+CUU)
-    * [.CUP](#module_node-ansiterminal.AnsiTerminal+CUP)
-    * [.DCH](#module_node-ansiterminal.AnsiTerminal+DCH)
-    * [.ED](#module_node-ansiterminal.AnsiTerminal+ED)
-    * [.EL](#module_node-ansiterminal.AnsiTerminal+EL)
-    * [.SGR](#module_node-ansiterminal.AnsiTerminal+SGR)
-
-<a name="new_module_node-ansiterminal.AnsiTerminal_new"></a>
-
-#### new AnsiTerminal(cols, rows, scrollLength)
 AnsiTerminal - an offscreen xterm like terminal.
 
 The terminal implements the interface of node-ansiparser.
@@ -468,6 +416,62 @@ screen while more advanced command line programs (e.g. curses based)
 use the alternate screen as a canvas. The current active
 screen is always accessible via the `screen` attribute.
 
+**Kind**: static class of <code>[node-ansiterminal](#module_node-ansiterminal)</code>  
+
+* [.AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)
+    * [new AnsiTerminal(cols, rows, scrollLength)](#new_module_node-ansiterminal.AnsiTerminal_new)
+    * [.reset()](#module_node-ansiterminal.AnsiTerminal+reset)
+    * [.toString(opts)](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
+    * [.resize(cols, rows)](#module_node-ansiterminal.AnsiTerminal+resize)
+    * [.inst_p(s)](#module_node-ansiterminal.AnsiTerminal+inst_p)
+    * [.inst_o(s)](#module_node-ansiterminal.AnsiTerminal+inst_o)
+    * [.inst_x(flag)](#module_node-ansiterminal.AnsiTerminal+inst_x)
+    * [.inst_c(collected, params, flag)](#module_node-ansiterminal.AnsiTerminal+inst_c)
+    * [.inst_e(collected, flag)](#module_node-ansiterminal.AnsiTerminal+inst_e)
+    * [.inst_H(collected, params, flag)](#module_node-ansiterminal.AnsiTerminal+inst_H)
+    * [.inst_P(data)](#module_node-ansiterminal.AnsiTerminal+inst_P)
+    * [.inst_U()](#module_node-ansiterminal.AnsiTerminal+inst_U)
+    * [.DECALN()](#module_node-ansiterminal.AnsiTerminal+DECALN)
+    * [.SD(params)](#module_node-ansiterminal.AnsiTerminal+SD)
+    * [.SU(params)](#module_node-ansiterminal.AnsiTerminal+SU)
+    * [.REP(params)](#module_node-ansiterminal.AnsiTerminal+REP)
+    * [.NEL()](#module_node-ansiterminal.AnsiTerminal+NEL)
+    * [.IND()](#module_node-ansiterminal.AnsiTerminal+IND)
+    * [.VPR(params)](#module_node-ansiterminal.AnsiTerminal+VPR)
+    * [.HPR(params)](#module_node-ansiterminal.AnsiTerminal+HPR)
+    * [.HPA(params)](#module_node-ansiterminal.AnsiTerminal+HPA)
+    * [.CBT(params)](#module_node-ansiterminal.AnsiTerminal+CBT)
+    * [.CHT(params)](#module_node-ansiterminal.AnsiTerminal+CHT)
+    * [.CPL(params)](#module_node-ansiterminal.AnsiTerminal+CPL)
+    * [.CNL(params)](#module_node-ansiterminal.AnsiTerminal+CNL)
+    * [.DL(params)](#module_node-ansiterminal.AnsiTerminal+DL)
+    * [.ICH(params)](#module_node-ansiterminal.AnsiTerminal+ICH)
+    * [.VPA(params)](#module_node-ansiterminal.AnsiTerminal+VPA)
+    * [.ECH(params)](#module_node-ansiterminal.AnsiTerminal+ECH)
+    * [.IL(params)](#module_node-ansiterminal.AnsiTerminal+IL)
+    * [.DECSTBM(params)](#module_node-ansiterminal.AnsiTerminal+DECSTBM)
+    * [.DECSTR()](#module_node-ansiterminal.AnsiTerminal+DECSTR)
+    * [.RI()](#module_node-ansiterminal.AnsiTerminal+RI)
+    * [.DECSC()](#module_node-ansiterminal.AnsiTerminal+DECSC)
+    * [.DECRC()](#module_node-ansiterminal.AnsiTerminal+DECRC)
+    * [.CHA(params)](#module_node-ansiterminal.AnsiTerminal+CHA)
+    * [.CUB(params)](#module_node-ansiterminal.AnsiTerminal+CUB)
+    * [.CUD(params)](#module_node-ansiterminal.AnsiTerminal+CUD)
+    * [.CUF(params)](#module_node-ansiterminal.AnsiTerminal+CUF)
+    * [.CUU(params)](#module_node-ansiterminal.AnsiTerminal+CUU)
+    * [.CUP(params)](#module_node-ansiterminal.AnsiTerminal+CUP)
+    * [.DCH(params)](#module_node-ansiterminal.AnsiTerminal+DCH)
+    * [.ED(params)](#module_node-ansiterminal.AnsiTerminal+ED)
+    * [.EL(params)](#module_node-ansiterminal.AnsiTerminal+EL)
+    * [.SGR(params)](#module_node-ansiterminal.AnsiTerminal+SGR)
+
+<a name="new_module_node-ansiterminal.AnsiTerminal_new"></a>
+
+#### new AnsiTerminal(cols, rows, scrollLength)
+The constructor creates a new terminal object with
+`cols` width and `rows` height. The `scrollLength` parameter
+is the max history length (number of lines) of the normal screen buffer.
+
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -486,16 +490,16 @@ console.log(terminal.toString());
 ```
 <a name="module_node-ansiterminal.AnsiTerminal+reset"></a>
 
-#### ansiTerminal.reset
+#### ansiTerminal.reset()
 Hard reset of the terminal.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 <a name="module_node-ansiterminal.AnsiTerminal+toString"></a>
 
-#### ansiTerminal.toString ⇒ <code>string</code>
+#### ansiTerminal.toString(opts) ⇒ <code>string</code>
 String representation of active terminal buffer.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -503,10 +507,10 @@ String representation of active terminal buffer.
 
 <a name="module_node-ansiterminal.AnsiTerminal+resize"></a>
 
-#### ansiTerminal.resize
+#### ansiTerminal.resize(cols, rows)
 Resize terminal to cols x rows.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -515,13 +519,13 @@ Resize terminal to cols x rows.
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_p"></a>
 
-#### ansiTerminal.inst_p
+#### ansiTerminal.inst_p(s)
 inst_p - handle printable characters
 
 The print implementation is aware of combining and surrogate characters and respects
 half and full width print space according to unicode.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param | Type |
 | --- | --- |
@@ -529,10 +533,10 @@ half and full width print space according to unicode.
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_o"></a>
 
-#### ansiTerminal.inst_o
+#### ansiTerminal.inst_o(s)
 inst_o - handle OSC instruction
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -540,10 +544,10 @@ inst_o - handle OSC instruction
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_x"></a>
 
-#### ansiTerminal.inst_x
+#### ansiTerminal.inst_x(flag)
 inst_x - handle single character instruction
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -551,10 +555,10 @@ inst_x - handle single character instruction
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_c"></a>
 
-#### ansiTerminal.inst_c
+#### ansiTerminal.inst_c(collected, params, flag)
 inst_c - handle CSI instruction
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -564,10 +568,10 @@ inst_c - handle CSI instruction
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_e"></a>
 
-#### ansiTerminal.inst_e
+#### ansiTerminal.inst_e(collected, flag)
 inst_e - handle ESC instruction
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -576,10 +580,10 @@ inst_e - handle ESC instruction
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_H"></a>
 
-#### ansiTerminal.inst_H
+#### ansiTerminal.inst_H(collected, params, flag)
 inst_H - enter DCS handler state
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **Note**: not implemented  
 
 | Param |
@@ -590,10 +594,10 @@ inst_H - enter DCS handler state
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_P"></a>
 
-#### ansiTerminal.inst_P
+#### ansiTerminal.inst_P(data)
 inst_P - handle DCS data
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **Note**: not implemented  
 
 | Param |
@@ -602,25 +606,25 @@ inst_P - handle DCS data
 
 <a name="module_node-ansiterminal.AnsiTerminal+inst_U"></a>
 
-#### ansiTerminal.inst_U
+#### ansiTerminal.inst_U()
 inst_U - leave DCS handler state
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **Note**: not implemented  
 <a name="module_node-ansiterminal.AnsiTerminal+DECALN"></a>
 
-#### ansiTerminal.DECALN
+#### ansiTerminal.DECALN()
 DECALN - Screen Alignment Pattern
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://www.vt100.net/docs/vt510-rm/DECALN](http://www.vt100.net/docs/vt510-rm/DECALN)  
 <a name="module_node-ansiterminal.AnsiTerminal+SD"></a>
 
-#### ansiTerminal.SD
+#### ansiTerminal.SD(params)
 SD - Scroll Down (Pan Up) - CSI Pn T
 Also SU moves scrolled out lines to scroll buffer, SD only adds new lines at the top.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/SD](http://vt100.net/docs/vt510-rm/SD)  
 
 | Param | Type | Description |
@@ -629,11 +633,11 @@ Also SU moves scrolled out lines to scroll buffer, SD only adds new lines at the
 
 <a name="module_node-ansiterminal.AnsiTerminal+SU"></a>
 
-#### ansiTerminal.SU
+#### ansiTerminal.SU(params)
 SU - Scroll Up (Pan Down) - CSI Pn S
 Scrolled out lines go into the scroll buffer.
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/SU](http://vt100.net/docs/vt510-rm/SU)  
 
 | Param | Type | Description |
@@ -642,10 +646,10 @@ Scrolled out lines go into the scroll buffer.
 
 <a name="module_node-ansiterminal.AnsiTerminal+REP"></a>
 
-#### ansiTerminal.REP
+#### ansiTerminal.REP(params)
 REP - Repeat the preceding graphic character P s times (REP) - CSI Ps b
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 
 | Param |
 | --- |
@@ -653,24 +657,24 @@ REP - Repeat the preceding graphic character P s times (REP) - CSI Ps b
 
 <a name="module_node-ansiterminal.AnsiTerminal+NEL"></a>
 
-#### ansiTerminal.NEL
+#### ansiTerminal.NEL()
 NEL - Next Line - ESC E
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/NEL](http://vt100.net/docs/vt510-rm/NEL)  
-<a name="module_node-ansiterminal.AnsiTerminal+NEL"></a>
+<a name="module_node-ansiterminal.AnsiTerminal+IND"></a>
 
-#### ansiTerminal.NEL
+#### ansiTerminal.IND()
 IND - Index - ESC D
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
-**See**: [http://vt100.net/docs/vt510-rm/NEL](http://vt100.net/docs/vt510-rm/NEL)  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**See**: [http://vt100.net/docs/vt510-rm/IND](http://vt100.net/docs/vt510-rm/IND)  
 <a name="module_node-ansiterminal.AnsiTerminal+VPR"></a>
 
-#### ansiTerminal.VPR
+#### ansiTerminal.VPR(params)
 VPR - Vertical Position Relative - CSI Pn e
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/VPR](http://vt100.net/docs/vt510-rm/VPR)  
 
 | Param |
@@ -679,10 +683,10 @@ VPR - Vertical Position Relative - CSI Pn e
 
 <a name="module_node-ansiterminal.AnsiTerminal+HPR"></a>
 
-#### ansiTerminal.HPR
+#### ansiTerminal.HPR(params)
 HPR - Horizontal Position Relative - CSI Pn a
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/HPR](http://vt100.net/docs/vt510-rm/HPR)  
 
 | Param |
@@ -691,10 +695,10 @@ HPR - Horizontal Position Relative - CSI Pn a
 
 <a name="module_node-ansiterminal.AnsiTerminal+HPA"></a>
 
-#### ansiTerminal.HPA
+#### ansiTerminal.HPA(params)
 HPA - Horizontal Position Absolute - CSI Pn '
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/HPA](http://vt100.net/docs/vt510-rm/HPA)  
 
 | Param |
@@ -703,10 +707,10 @@ HPA - Horizontal Position Absolute - CSI Pn '
 
 <a name="module_node-ansiterminal.AnsiTerminal+CBT"></a>
 
-#### ansiTerminal.CBT
+#### ansiTerminal.CBT(params)
 CBT - Cursor Backward Tabulation - CSI Pn Z
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CBT](http://vt100.net/docs/vt510-rm/CBT)  
 
 | Param |
@@ -715,10 +719,10 @@ CBT - Cursor Backward Tabulation - CSI Pn Z
 
 <a name="module_node-ansiterminal.AnsiTerminal+CHT"></a>
 
-#### ansiTerminal.CHT
+#### ansiTerminal.CHT(params)
 CHT - Cursor Horizontal Forward Tabulation - CSI Pn I
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CHT](http://vt100.net/docs/vt510-rm/CHT)  
 
 | Param |
@@ -727,10 +731,10 @@ CHT - Cursor Horizontal Forward Tabulation - CSI Pn I
 
 <a name="module_node-ansiterminal.AnsiTerminal+CPL"></a>
 
-#### ansiTerminal.CPL
+#### ansiTerminal.CPL(params)
 CPL - Cursor Previous Line - CSI Pn F
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CPL](http://vt100.net/docs/vt510-rm/CPL)  
 
 | Param |
@@ -739,10 +743,10 @@ CPL - Cursor Previous Line - CSI Pn F
 
 <a name="module_node-ansiterminal.AnsiTerminal+CNL"></a>
 
-#### ansiTerminal.CNL
+#### ansiTerminal.CNL(params)
 CNL - Cursor Next Line - CSI Pn E
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CNL](http://vt100.net/docs/vt510-rm/CNL)  
 
 | Param |
@@ -751,10 +755,10 @@ CNL - Cursor Next Line - CSI Pn E
 
 <a name="module_node-ansiterminal.AnsiTerminal+DL"></a>
 
-#### ansiTerminal.DL
+#### ansiTerminal.DL(params)
 DL - Delete Line - CSI Pn M
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/DL](http://vt100.net/docs/vt510-rm/DL)  
 
 | Param |
@@ -763,10 +767,10 @@ DL - Delete Line - CSI Pn M
 
 <a name="module_node-ansiterminal.AnsiTerminal+ICH"></a>
 
-#### ansiTerminal.ICH
+#### ansiTerminal.ICH(params)
 ICH - Insert Character - CSI Pn @
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/ICH](http://vt100.net/docs/vt510-rm/ICH)  
 
 | Param |
@@ -775,10 +779,10 @@ ICH - Insert Character - CSI Pn @
 
 <a name="module_node-ansiterminal.AnsiTerminal+VPA"></a>
 
-#### ansiTerminal.VPA
+#### ansiTerminal.VPA(params)
 VPA - Vertical Line Position Absolute - CSI Pn d
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/VPA](http://vt100.net/docs/vt510-rm/VPA)  
 
 | Param |
@@ -787,10 +791,10 @@ VPA - Vertical Line Position Absolute - CSI Pn d
 
 <a name="module_node-ansiterminal.AnsiTerminal+ECH"></a>
 
-#### ansiTerminal.ECH
+#### ansiTerminal.ECH(params)
 ECH - Erase Character - CSI Pn X
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/ECH](http://vt100.net/docs/vt510-rm/ECH)  
 
 | Param |
@@ -799,10 +803,10 @@ ECH - Erase Character - CSI Pn X
 
 <a name="module_node-ansiterminal.AnsiTerminal+IL"></a>
 
-#### ansiTerminal.IL
+#### ansiTerminal.IL(params)
 IL - Insert Line - CSI Pn L
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/IL](http://vt100.net/docs/vt510-rm/IL)  
 
 | Param |
@@ -811,10 +815,10 @@ IL - Insert Line - CSI Pn L
 
 <a name="module_node-ansiterminal.AnsiTerminal+DECSTBM"></a>
 
-#### ansiTerminal.DECSTBM
+#### ansiTerminal.DECSTBM(params)
 DECSTBM - Set Top and Bottom Margins - CSI Pt ; Pb r
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **Note**: currently broken  
 **See**: [http://vt100.net/docs/vt510-rm/DECSTBM](http://vt100.net/docs/vt510-rm/DECSTBM)  
 
@@ -824,37 +828,37 @@ DECSTBM - Set Top and Bottom Margins - CSI Pt ; Pb r
 
 <a name="module_node-ansiterminal.AnsiTerminal+DECSTR"></a>
 
-#### ansiTerminal.DECSTR
+#### ansiTerminal.DECSTR()
 DECSTR - Soft Terminal Reset - CSI ! p
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/DECSTR](http://vt100.net/docs/vt510-rm/DECSTR)  
 <a name="module_node-ansiterminal.AnsiTerminal+RI"></a>
 
-#### ansiTerminal.RI
+#### ansiTerminal.RI()
 RI - Reverse Index - ESC M
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 <a name="module_node-ansiterminal.AnsiTerminal+DECSC"></a>
 
-#### ansiTerminal.DECSC
+#### ansiTerminal.DECSC()
 DECSC - Save Cursor - ESC 7
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/DECSC](http://vt100.net/docs/vt510-rm/DECSC)  
 <a name="module_node-ansiterminal.AnsiTerminal+DECRC"></a>
 
-#### ansiTerminal.DECRC
+#### ansiTerminal.DECRC()
 DECRC - Restore Cursor - ESC 8
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/DECRC](http://vt100.net/docs/vt510-rm/DECRC)  
 <a name="module_node-ansiterminal.AnsiTerminal+CHA"></a>
 
-#### ansiTerminal.CHA
+#### ansiTerminal.CHA(params)
 CHA - Cursor Horizontal Absolute - CSI Pn G
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CHA](http://vt100.net/docs/vt510-rm/CHA)  
 
 | Param |
@@ -863,10 +867,10 @@ CHA - Cursor Horizontal Absolute - CSI Pn G
 
 <a name="module_node-ansiterminal.AnsiTerminal+CUB"></a>
 
-#### ansiTerminal.CUB
+#### ansiTerminal.CUB(params)
 CUB - Cursor Backward - CSI Pn D
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CUB](http://vt100.net/docs/vt510-rm/CUB)  
 
 | Param |
@@ -875,10 +879,10 @@ CUB - Cursor Backward - CSI Pn D
 
 <a name="module_node-ansiterminal.AnsiTerminal+CUD"></a>
 
-#### ansiTerminal.CUD
+#### ansiTerminal.CUD(params)
 CUD - Cursor Down - CSI Pn B
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CUD](http://vt100.net/docs/vt510-rm/CUD)  
 
 | Param |
@@ -887,10 +891,10 @@ CUD - Cursor Down - CSI Pn B
 
 <a name="module_node-ansiterminal.AnsiTerminal+CUF"></a>
 
-#### ansiTerminal.CUF
+#### ansiTerminal.CUF(params)
 CUD - Cursor Forward - CSI Pn C
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CUF](http://vt100.net/docs/vt510-rm/CUF)  
 
 | Param |
@@ -899,10 +903,10 @@ CUD - Cursor Forward - CSI Pn C
 
 <a name="module_node-ansiterminal.AnsiTerminal+CUU"></a>
 
-#### ansiTerminal.CUU
+#### ansiTerminal.CUU(params)
 CUD - Cursor Up - CSI Pn A
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CUU](http://vt100.net/docs/vt510-rm/CUU)  
 
 | Param |
@@ -911,10 +915,10 @@ CUD - Cursor Up - CSI Pn A
 
 <a name="module_node-ansiterminal.AnsiTerminal+CUP"></a>
 
-#### ansiTerminal.CUP
+#### ansiTerminal.CUP(params)
 CUP - Cursor Position - CSI Pl ; Pc H
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/CUP](http://vt100.net/docs/vt510-rm/CUP)  
 
 | Param |
@@ -923,10 +927,10 @@ CUP - Cursor Position - CSI Pl ; Pc H
 
 <a name="module_node-ansiterminal.AnsiTerminal+DCH"></a>
 
-#### ansiTerminal.DCH
+#### ansiTerminal.DCH(params)
 DCH - Delete Character - CSI Pn P
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/DCH](http://vt100.net/docs/vt510-rm/DCH)  
 
 | Param |
@@ -935,10 +939,10 @@ DCH - Delete Character - CSI Pn P
 
 <a name="module_node-ansiterminal.AnsiTerminal+ED"></a>
 
-#### ansiTerminal.ED
+#### ansiTerminal.ED(params)
 ED - Erase in Display - CSI Ps J
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/ED](http://vt100.net/docs/vt510-rm/ED)  
 
 | Param |
@@ -947,10 +951,10 @@ ED - Erase in Display - CSI Ps J
 
 <a name="module_node-ansiterminal.AnsiTerminal+EL"></a>
 
-#### ansiTerminal.EL
+#### ansiTerminal.EL(params)
 EL - Erase in Line - CSI Ps K
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/EL](http://vt100.net/docs/vt510-rm/EL)  
 
 | Param |
@@ -959,10 +963,10 @@ EL - Erase in Line - CSI Ps K
 
 <a name="module_node-ansiterminal.AnsiTerminal+SGR"></a>
 
-#### ansiTerminal.SGR
+#### ansiTerminal.SGR(params)
 SGR - Select Graphic Rendition - CSI Ps ; Ps ... m
 
-**Kind**: instance property of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
 **See**: [http://vt100.net/docs/vt510-rm/SGR](http://vt100.net/docs/vt510-rm/SGR)  
 
 | Param |
@@ -978,7 +982,7 @@ halfwidth space.
 **Kind**: static method of <code>[node-ansiterminal](#module_node-ansiterminal)</code>  
 **Returns**: <code>number</code> - halfwidth length of the string  
 **Note**: Terminals and fonts may behave differently for some codepoints since unicode
-         knows more widths than half- and fullwidth.  
+         knows more widths than half and full width.  
 
 | Param | Type | Description |
 | --- | --- | --- |
