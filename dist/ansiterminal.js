@@ -496,6 +496,7 @@
     function TRow(length, tchar) {
         this.uniqueId = _uniqueId++|0;
         this.version = 1;
+        this.doubled = 0;  // 0 - normal, 1 - width, 3 - height top, 4 - height bottom
         this.cells = [];
         for (var i=0; i<length; ++i) {
             //this.cells.push(tchar.clone()); // to slow?
@@ -509,9 +510,9 @@
      * @method module:node-ansiterminal.TRow#serialize
      */
     TRow.prototype.serialize = function() {
-        var result = [];
+        var result = {content: [], attributes: {doubled: this.doubled}};
         for (var i=0; i<this.cells.length; ++i)
-            result.push(this.cells[i].serialize());
+            result.content.push(this.cells[i].serialize());
         return result;
     };
 
@@ -523,8 +524,9 @@
      */
     TRow.deserialize = function(o) {
         var row = new TRow(0, null);
-        for (var i=0;i< o.length; ++i)
-            row.cells.push(TChar.deserialize(o[i]));
+        for (var i=0;i< o.content.length; ++i)
+            row.cells.push(TChar.deserialize(o.content[i]));
+        row.doubled = o.attributes.doubled;
         return row;
     };
 
@@ -579,9 +581,12 @@
         if (!this.cells.length)
             return stack;
         var tchar = null;
+        var length = this.cells.length;
+        if (this.doubled)
+            length = parseInt(length/2);
         var elem = this.cells[0].clone();
         elem.c = elem.c || '\x00';
-        for (var i=1; i<this.cells.length; ++i) {
+        for (var i=1; i<length; ++i) {
             tchar = this.cells[i];
             if ((elem.attr !== tchar.attr)) {
                 stack.push(elem);
@@ -624,12 +629,12 @@
      * @method module:node-ansiterminal.TRow#toJSON
      */
     TRow.prototype.toJSON = function(opts) {
-        var json = [];
+        var json = {content: [], attributes: {doubled: this.doubled}};
         var stack = this.toMergedArray(opts);
         var tchar = null;
         for (var i=0; i<stack.length; ++i) {
             tchar = stack[i];
-            json.push({
+            json.content.push({
                 string: tchar.c,
                 width: tchar.width,
                 attributes: tchar.getJSONAttributes()});
@@ -638,9 +643,6 @@
     };
 
     function _get_escape_string(attr_old, attr_new, gb_old, gb_new) {
-        if (!attr_new)
-            return '\x1b[0m';
-
         var bits = (attr_new >>> 16) & 255;
         var diff = ((attr_old >>> 16) & 255) ^ bits;
         var colorbits = attr_new >>> 24;
@@ -679,7 +681,7 @@
                     result.push(49);
             }
         }
-        return '\x1b[' + result.join(';') + 'm';
+        return result.join(';');
     }
 
     /**
@@ -690,13 +692,30 @@
      */
     TRow.prototype.toEscapeString = function(opts) {
         var s = '\x1b[0m';
+        switch (this.doubled) {
+            case 0:
+                s += '\x1b#5';
+                break;
+            case 1:
+                s += '\x1b#6';
+                break;
+            case 3:
+                s += '\x1b#3';
+                break;
+            case 4:
+                s += '\x1b#4';
+        }
         var stack = this.toMergedArray(opts);
         var tchar = null;
         var old_attr = 0;
         var old_gb = 0;
         for (var i=0; i<stack.length; ++i) {
             tchar = stack[i];
-            s += _get_escape_string(old_attr, tchar.attr, old_gb, tchar.gb);
+            s += '\x1b[' + (
+                    (tchar.attr)
+                        ? _get_escape_string(old_attr, tchar.attr, old_gb, tchar.gb)
+                        : '0'
+                ) + 'm';
             s += tchar.c;
             old_attr = tchar.attr;
             old_gb = tchar.gb;
@@ -827,6 +846,47 @@
             .replace(/'/g, "&#039;");
     }
 
+    // TODO: browser tests
+    function _apply_row_attributes(content, doubled, options) {
+        if (options.classes) {
+            var classnames = ['', 'dbl-width', '', 'dbl-height-top', 'dbl-height-bottom'];
+            return '<span class="' + classnames[doubled] + '">' + content + '</span>';
+        }
+        var result = '';
+        switch (doubled) {
+            case 1:  // double width
+                result = '<span style="';
+                result += 'transform: scale(2,1);';
+                result += 'display: inline-block;';
+                result += 'margin-left:25%">';
+                result += content;
+                result += '</span>';
+                break;
+            case 3:  // double height top
+                result = '<span style="';
+                result += 'display: inline-block;';
+                result += 'vertical-align:bottom;';
+                result += 'margin: -0.667em 25% 0.667em;';
+                result += 'overflow: hidden;';
+                result += 'transform: scale(2, 2);">';
+                result += '<span style="display: inline-block;transform: translateY(0.5em);">';
+                result += content;
+                result += '</span></span>';
+                break;
+            case 4:  // double height bottom
+                result = '<span style="';
+                result += 'display: inline-block;';
+                result += 'vertical-align:top;';
+                result += 'margin-left: 25%;';
+                result += 'overflow: hidden;';
+                result += 'transform: scale(2, 2);">';
+                result += '<span style="display: inline-block;transform: translateY(-0.46em);">';
+                result += content;
+                result += '</span></span>';
+        }
+        return result;
+    }
+
     /**
      * HTML string representation of TRow.
      *
@@ -894,6 +954,8 @@
             if (tchar.attr)
                 html += '</span>';
         }
+        if (this.doubled)
+            return _apply_row_attributes(html, this.doubled, options);
         return html;
     };
 
@@ -1044,6 +1106,7 @@
     };
 
     /** minimal support for switching charsets (only basic drawing symbols supported) */
+    // see http://www.vt100.net/charsets/technical.html for technical charset
     var CHARSET_0 = {
         '`': '◆', 'a': '▒', 'b': '␉', 'c': '␌', 'd': '␍',
         'e': '␊', 'f': '°', 'g': '±', 'h': '␤', 'i': '␋',
@@ -1131,7 +1194,6 @@
         this.normal_cursor = {col: 0, row: 0};
         this.alternate_cursor = {col: 0, row: 0};
         this.cursor = this.normal_cursor;
-        this.charset = null;
         this.textattributes = 0;
         this.colors = 0;
         this.charattributes = 0;
@@ -1159,6 +1221,19 @@
         // new wrapping behavior
         this.wrap = false;
         this.row_wrap = false;
+
+        // DCS stuff
+        this.dcs_handler = null;
+        this.dcs_handlers = {};
+
+        // register standard DCS handlers
+        this.registerDCSHandler(DCS_DECRQSS, '$', 'q');
+
+        // character sets
+        this.G0 = null;
+        this.G1 = null;
+        this.charset = this.G0;
+        this.active_charset = 0;
     };
 
     /**
@@ -1205,6 +1280,19 @@
         if (this.cursor_save)
             this.DECSC();
     };
+
+    AnsiTerminal.prototype.registerDCSHandler = function(handler, collected, flag) {
+        this.dcs_handlers[flag+collected] = handler;
+    };
+    AnsiTerminal.prototype.unregisterDCSHandler = function(handler) {
+        for (var prop in this.dcs_handlers) {
+            if (this.dcs_handlers.hasOwnProperty(prop) && this.dcs_handlers[prop] == handler) {
+                delete this.dcs_handlers[prop];
+                break;
+            }
+        }
+    };
+
 
     /** 
      * Implementation of the parser instructions
@@ -1401,8 +1489,14 @@
                 break;
             case '\x0b':  this.inst_x('\n'); break;
             case '\x0c':  this.inst_x('\n'); break;
-            case '\x0e':  this.charset = CHARSET_0; break;  // activate G1
-            case '\x0f':  this.charset = null; break;       // activate G0 FIXME
+            case '\x0e':                                // activate G1
+                this.charset = this.G1;
+                this.active_charset = 1;
+                break;
+            case '\x0f':                                // activate G0
+                this.charset = this.G0;
+                this.active_charset = 0;
+                break;
             case '\x11':  console.log('unhandled DC1 (XON)'); break;  // TODO
             case '\x12':  break;  // DC2
             case '\x13':  console.log('unhandled DC3 (XOFF)'); break; // TODO
@@ -1556,10 +1650,10 @@
             }
         } else if (collected == '#') {
             switch (flag) {
-                //case '3':  // (#) DEC double-height line, top half (DECDHL) - not supported
-                //case '4':  // (#) DEC double-height line, bottom half (DECDHL) - not supported
-                //case '5':  // (#) DEC single-width line (DECSWL) - not supported
-                //case '6':  // (#) DEC double-width line (DECDWL) - not supported
+                case '3':  return this.DECDHL(3);  // (#) DEC double-height line, top half (DECDHL)
+                case '4':  return this.DECDHL(4);  // (#) DEC double-height line, bottom half (DECDHL)
+                case '5':  return this.DECSWL();  // (#) DEC single-width line (DECSWL)
+                case '6':  return this.DECDWL();  // (#) DEC double-width line (DECDWL)
                 case '8':  return this.DECALN();  // (#) DEC Screen Alignment Test (DECALN)
                 default :  console.log('inst_e unhandled:', collected, flag);
             }
@@ -1569,13 +1663,26 @@
                 //case 'G':  // (%) Select UTF-8 character set (ISO 2022) - not supported
                 default :  this.charset = null;  // always reset charset
             }
-        } else if ('()*+'.indexOf(collected) != -1) {
+        } else if (collected == '(') {
             switch (flag) {
                 case '0':
-                    this.charset = CHARSET_0;  // no extended character set support, only basic drawing symbols
+                    this.G0 = CHARSET_0;
                     break;
-                default : this.charset = null;  // always reset charset
+                default:
+                    this.G0 = null;
             }
+            if (this.active_charset == 0)
+                this.charset = this.G0;
+        } else if (collected == ')') {
+            switch (flag) {
+                case '0':
+                    this.G1 = CHARSET_0;
+                    break;
+                default:
+                    this.G1 = null;
+            }
+            if (this.active_charset == 1)
+                this.charset = this.G1;
         } else {
             console.log('inst_e unhandled:', collected, flag);
         }
@@ -1583,42 +1690,42 @@
 
     /**
      * inst_H - enter DCS handler state
-     * @note not implemented
      * @param collected
      * @param params
      * @param flag
      * @method module:node-ansiterminal.AnsiTerminal#inst_H
      */
     AnsiTerminal.prototype.inst_H = function(collected, params, flag) {
-        console.log('inst_H unhandled:', collected, params, flag);
         this.last_char = '';
         this._rem_c = '';
         this.wrap = false;
+        var Handler = this.dcs_handlers[flag+collected];
+        this.dcs_handler = (!Handler) ? DCS_Dummy() : Handler();
+        this.dcs_handler.hook(this, collected, params, flag);
     };
 
     /**
      * inst_P - handle DCS data
-     * @note not implemented
      * @param data
      * @method module:node-ansiterminal.AnsiTerminal#inst_P
      */
     AnsiTerminal.prototype.inst_P = function(data) {
-        console.log('inst_P unhandled:', data);
         this.last_char = '';
         this._rem_c = '';
         this.wrap = false;
+        this.dcs_handler.feed(data);
     };
 
     /**
      * inst_U - leave DCS handler state
-     * @note not implemented
      * @method module:node-ansiterminal.AnsiTerminal#inst_U
      */
     AnsiTerminal.prototype.inst_U = function() {
-        console.log('inst_U unhandled');
         this.last_char = '';
         this._rem_c = '';
         this.wrap = false;
+        this.dcs_handler.unhook();
+        this.dcs_handler = null;
     };
 
     /**
@@ -1638,6 +1745,16 @@
      * "inst_c unhandled:" "?" Array [ 2004 ] "h"   bracketed paste mode https://cirw.in/blog/bracketed-paste
      *
      */
+
+    AnsiTerminal.prototype.DECDHL = function(param) {
+        this.screen.buffer[this.cursor.row].doubled = param;
+    };
+    AnsiTerminal.prototype.DECDWL = function() {
+        this.screen.buffer[this.cursor.row].doubled = 1;
+    };
+    AnsiTerminal.prototype.DECSWL = function() {
+        this.screen.buffer[this.cursor.row].doubled = 0;
+    };
 
     /**
      * DECALN - Screen Alignment Pattern
@@ -2507,6 +2624,70 @@
         this.textattributes = attr;
         this.colors = colors;
     };
+
+    /**
+     * default DCS handler
+     */
+
+    /**
+     * DCS dummy handler
+     */
+    function DCS_Dummy() {
+        return new (function() {
+            this.hook = function (term, collected, params, flag) {
+                console.log('inst_H unhandled:', collected, params, flag);
+            };
+            this.feed = function (data) {
+                console.log('inst_P unhandled:', data);
+            };
+            this.unhook = function () {
+            };
+        })();
+    }
+
+    // http://www.vt100.net/docs/vt510-rm/DECRQSS.html
+    /**
+     * DECRQSS - Request Selection or Setting - DCS $ q D..D ST
+     *
+     * Difference to DEC specification - P1 for valid, P0 for invalid requests
+     *
+     * @see {@link http://www.vt100.net/docs/vt510-rm/DECRQSS.html}
+     */
+    function DCS_DECRQSS() {
+        return new (function () {
+            this.term = null;
+            this.data = '';
+            this.limit = 5;
+            this.hook = function(term) {
+                this.term = term;
+                this.data = '';
+            };
+            this.feed = function(data) {
+                if (this.data.length<this.limit)
+                    this.data += data;
+            };
+            this.unhook = function() {
+                switch (this.data) {
+                    case '"q':                          // TODO: DECSCA
+                        return this.term.send('');
+                    case '"p':                          // TODO: DECSCL
+                        return this.term.send('\x1bP1$r64;1"p\x1b\\');
+                    case 'r':                           // DECSTBM
+                        var t = this.term.scrolling_top + 1;
+                        var b = this.term.scrolling_bottom + 1;
+                        return this.term.send('\x1bP1$r' + t + ';' + b + 'r\x1b\\');
+                    case 'm':                           // SGR
+                        var s = '0';
+                        if (this.term.textattributes)
+                            s += ';' + _get_escape_string(0, this.term.textattributes,
+                                                          0, this.term.colors);
+                        return this.term.send('\x1bP1$r' + s + 'm\x1b\\');
+                    default:                            // unrecognized command
+                        this.term.send('\x1bP0$r\x1b\\');
+                }
+            };
+        })();
+    }
 
     var to_export = {
         wcswidth: wcswidth,

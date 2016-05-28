@@ -26,17 +26,25 @@ describe('serialisation', function() {
     });
 
     it('TRow serialize', function () {
-        var expect = [
-            ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1],
-            ['f', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1]
-        ];
+        var expect = {
+            content:
+                [
+                    ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1],
+                    ['f', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1]
+                ],
+            attributes: {doubled: 0}
+    };
         chai.expect(terminal.screen.buffer[0].serialize()).eql(expect);
     });
     it('TRow deserialize', function () {
-        var serialized = [
-            ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1],
-            ['f', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1]
-        ];
+        var serialized = {
+            content:
+                [
+                    ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1],
+                    ['f', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1], ['', 0, 0, 1]
+                ],
+            attributes: {doubled: 0}
+        };
         var row = TRow.deserialize(serialized);
         for (var i=0; i<row.cells.length; ++i)
             chai.expect(row.cells[i].equals(terminal.screen.buffer[0].cells[i])).eql(true);

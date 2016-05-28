@@ -30,38 +30,42 @@ describe('TRow', function() {
         chai.expect(terminal.screen.buffer[0].toMergedArray({rtrim:true})).eql(expected);
     });
     it('toJSON test1', function () {
-        var expected = [
-            {
-                string: 'Hello',
-                width: 5,
-                attributes: {
-                    bold: false, italic: false, underline: false,
-                    blink: false, inverse: false, conceal: false,
-                    foreground: {mode: '256', color: 1},
-                    background: false
-                }
-            },
-            {
-                string: 'World!',
-                width: 6,
-                attributes: {
-                    bold: true, italic: false, underline: false,
-                    blink: false, inverse: false, conceal: false,
-                    foreground: {mode: '256', color: 1},
-                    background: {mode: 'RGB', color: {r: 128, g: 50, b: 0}}
-                }
-            },
-            {
-                string: '#normal#',
-                width: 8,
-                attributes: {
-                    bold: false, italic: false, underline: false,
-                    blink: false, inverse: false, conceal: false,
-                    foreground: false,
-                    background: false
-                }
-            }
-        ];
+        var expected = {
+            content:
+                [
+                    {
+                        string: 'Hello',
+                        width: 5,
+                        attributes: {
+                            bold: false, italic: false, underline: false,
+                            blink: false, inverse: false, conceal: false,
+                            foreground: {mode: '256', color: 1},
+                            background: false
+                        }
+                    },
+                    {
+                        string: 'World!',
+                        width: 6,
+                        attributes: {
+                            bold: true, italic: false, underline: false,
+                            blink: false, inverse: false, conceal: false,
+                            foreground: {mode: '256', color: 1},
+                            background: {mode: 'RGB', color: {r: 128, g: 50, b: 0}}
+                        }
+                    },
+                    {
+                        string: '#normal#',
+                        width: 8,
+                        attributes: {
+                            bold: false, italic: false, underline: false,
+                            blink: false, inverse: false, conceal: false,
+                            foreground: false,
+                            background: false
+                        }
+                    }
+                ],
+            attributes: {doubled: 0}
+        };
         terminal.reset();
         parser.reset();
         parser.parse(test1);
@@ -71,36 +75,36 @@ describe('TRow', function() {
         terminal.reset();
         parser.reset();
         parser.parse(test1);
-        var expected = 'CSI[0mCSI[38;5;1mHelloCSI[1;38;5;9;48;2;128;50;0mWorld!CSI[0m#normal#';
-        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'CSI')).eql(expected);
+        var expected = 'ESC[0mESC#5ESC[38;5;1mHelloESC[1;38;5;9;48;2;128;50;0mWorld!ESC[0m#normal#';
+        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'ESC')).eql(expected);
     });
     it('toEscapeString test4', function () {
         terminal.reset();
         parser.reset();
         parser.parse(test4);
-        var expected = 'CSI[0mCSI[7m#CSI[0m';
-        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'CSI')).eql(expected);
+        var expected = 'ESC[0mESC#5ESC[7m#ESC[0m';
+        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'ESC')).eql(expected);
     });
     it('toEscapeString test5', function () {
         terminal.reset();
         parser.reset();
         parser.parse(test5);
-        var expected = 'CSI[0mCSI[1;3;4;5;7;8m#CSI[22;23;24;25;27;28m#CSI[0m';
-        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'CSI')).eql(expected);
+        var expected = 'ESC[0mESC#5ESC[1;3;4;5;7;8m#ESC[22;23;24;25;27;28m#ESC[0m';
+        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'ESC')).eql(expected);
     });
     it('toEscapeString test6', function () {
         terminal.reset();
         parser.reset();
         parser.parse(test6);
-        var expected = 'CSI[0mCSI[3;38;5;1;48;5;1m#CSI[39;49m#CSI[0m';
-        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'CSI')).eql(expected);
+        var expected = 'ESC[0mESC#5ESC[3;38;5;1;48;5;1m#ESC[39;49m#ESC[0m';
+        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'ESC')).eql(expected);
     });
     it('toEscapeString test7', function () {
         terminal.reset();
         parser.reset();
         parser.parse(test7);
-        var expected = 'CSI[0mCSI[38;2;1;2;3;48;2;3;2;1m#CSI[0m#';
-        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'CSI')).eql(expected);
+        var expected = 'ESC[0mESC#5ESC[38;2;1;2;3;48;2;3;2;1m#ESC[0m#';
+        chai.expect(terminal.screen.buffer[0].toEscapeString({rtrim:true}).replace(/\x1b/g, 'ESC')).eql(expected);
     });
     it('toHTML test1', function () {
         terminal.reset();

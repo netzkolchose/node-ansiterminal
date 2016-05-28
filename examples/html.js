@@ -12,7 +12,8 @@ function handleRequest(request, response){
 }
 var server = http.createServer(handleRequest);
 server.listen(PORT, function(){
-    console.log("Server listening on: http://localhost:%s", PORT);
+    _log("Server listening on: http://localhost:%s", PORT);
+    _log('<input stuff at this console>');
 });
 
 
@@ -48,7 +49,9 @@ var parser = new AnsiParser(terminal);
 ptyterm.on('data', function(d) {
     parser.parse(d);
     data = '<!DOCTYPE html>\n';
-    data += '<html><head><meta charset="utf-8" /><title></title></head><body>';
+    data += '<html><head><meta charset="utf-8" /><title></title>';
+    data += '<style>@keyframes blink { 50% {visibility: visible; } }</style>';
+    data += '</head><body>';
     data += '<pre style="color:#000;background: #fff;display: inline-block;border:1px solid black">';
     for (var i=0; i<terminal.screen.buffer.length; ++i) {
         data += terminal.screen.buffer[i].toHTML({rtrim: false, empty_cell: ' ', classes: false});
@@ -69,6 +72,3 @@ stdin.addListener("data", function(d) {
     }
     ptyterm.write(d);
 });
-
-_log('Simple HTML output example on http://localhost:8080');
-_log('<input stuff at this console>');
