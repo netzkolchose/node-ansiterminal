@@ -35,6 +35,8 @@ var ansiterminal = require('node-ansiterminal')
             * [.reset()](#module_node-ansiterminal.AnsiTerminal+reset)
             * [.toString(opts)](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
             * [.resize(cols, rows)](#module_node-ansiterminal.AnsiTerminal+resize)
+            * [.registerDCSHandler(handler, collected, flag)](#module_node-ansiterminal.AnsiTerminal+registerDCSHandler)
+            * [.unregisterDCSHandler(handler)](#module_node-ansiterminal.AnsiTerminal+unregisterDCSHandler)
             * [.inst_p(s)](#module_node-ansiterminal.AnsiTerminal+inst_p)
             * [.inst_o(s)](#module_node-ansiterminal.AnsiTerminal+inst_o)
             * [.inst_x(flag)](#module_node-ansiterminal.AnsiTerminal+inst_x)
@@ -78,6 +80,8 @@ var ansiterminal = require('node-ansiterminal')
             * [.SGR(params)](#module_node-ansiterminal.AnsiTerminal+SGR)
         * [.wcswidth(s)](#module_node-ansiterminal.wcswidth) ⇒ <code>number</code>
         * [.get_color(value)](#module_node-ansiterminal.get_color) ⇒ <code>string</code>
+        * [.DCS_Dummy()](#module_node-ansiterminal.DCS_Dummy)
+        * [.DCS_DECRQSS()](#module_node-ansiterminal.DCS_DECRQSS)
     * _inner_
         * [~TColors](#module_node-ansiterminal..TColors) : <code>Object</code>
         * [~TAttributes](#module_node-ansiterminal..TAttributes) : <code>Object</code>
@@ -423,6 +427,8 @@ screen is always accessible via the `screen` attribute.
     * [.reset()](#module_node-ansiterminal.AnsiTerminal+reset)
     * [.toString(opts)](#module_node-ansiterminal.AnsiTerminal+toString) ⇒ <code>string</code>
     * [.resize(cols, rows)](#module_node-ansiterminal.AnsiTerminal+resize)
+    * [.registerDCSHandler(handler, collected, flag)](#module_node-ansiterminal.AnsiTerminal+registerDCSHandler)
+    * [.unregisterDCSHandler(handler)](#module_node-ansiterminal.AnsiTerminal+unregisterDCSHandler)
     * [.inst_p(s)](#module_node-ansiterminal.AnsiTerminal+inst_p)
     * [.inst_o(s)](#module_node-ansiterminal.AnsiTerminal+inst_o)
     * [.inst_x(flag)](#module_node-ansiterminal.AnsiTerminal+inst_x)
@@ -517,6 +523,32 @@ Resize terminal to cols x rows.
 | cols | <code>number</code> | new columns value |
 | rows | <code>number</code> | new rows value |
 
+<a name="module_node-ansiterminal.AnsiTerminal+registerDCSHandler"></a>
+
+#### ansiTerminal.registerDCSHandler(handler, collected, flag)
+Register a DCS handler for `flag` and `collected`.
+The handler must follow the DCS "interface" with a `hook`, `feed` and
+`unhook` method (see [DCS_Dummy](#module_node-ansiterminal.DCS_Dummy)).
+
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+
+| Param | Type |
+| --- | --- |
+| handler | <code>function</code> | 
+| collected | <code>string</code> | 
+| flag | <code>string</code> | 
+
+<a name="module_node-ansiterminal.AnsiTerminal+unregisterDCSHandler"></a>
+
+#### ansiTerminal.unregisterDCSHandler(handler)
+Unregister a DCS handler.
+
+**Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| handler | <code>function</code> | previously registered handler |
+
 <a name="module_node-ansiterminal.AnsiTerminal+inst_p"></a>
 
 #### ansiTerminal.inst_p(s)
@@ -584,7 +616,6 @@ inst_e - handle ESC instruction
 inst_H - enter DCS handler state
 
 **Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
-**Note**: not implemented  
 
 | Param |
 | --- |
@@ -598,7 +629,6 @@ inst_H - enter DCS handler state
 inst_P - handle DCS data
 
 **Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
-**Note**: not implemented  
 
 | Param |
 | --- |
@@ -610,7 +640,6 @@ inst_P - handle DCS data
 inst_U - leave DCS handler state
 
 **Kind**: instance method of <code>[AnsiTerminal](#module_node-ansiterminal.AnsiTerminal)</code>  
-**Note**: not implemented  
 <a name="module_node-ansiterminal.AnsiTerminal+DECALN"></a>
 
 #### ansiTerminal.DECALN()
@@ -1007,6 +1036,27 @@ Default color mapper function with xterm colorset in white on black.
 | --- |
 | value | 
 
+<a name="module_node-ansiterminal.DCS_Dummy"></a>
+
+### ansiterminal.DCS_Dummy()
+DCS dummy handler
+
+This is a dummy for a dcs handler. It handles all DCS sequences that have no
+real implementation.
+
+**Kind**: static method of <code>[node-ansiterminal](#module_node-ansiterminal)</code>  
+<a name="module_node-ansiterminal.DCS_DECRQSS"></a>
+
+### ansiterminal.DCS_DECRQSS()
+DECRQSS - Request Selection or Setting - DCS $ q D..D ST
+
+DCS handler for DECRQSS. Currently only SGR and DECSTBM reports are fully implemented.
+
+Difference to DEC specification - P1 for valid, P0 for invalid request
+(following the xterm scheme)
+
+**Kind**: static method of <code>[node-ansiterminal](#module_node-ansiterminal)</code>  
+**See**: [http://www.vt100.net/docs/vt510-rm/DECRQSS.html](http://www.vt100.net/docs/vt510-rm/DECRQSS.html)  
 <a name="module_node-ansiterminal..TColors"></a>
 
 ### ansiterminal~TColors : <code>Object</code>

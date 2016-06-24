@@ -497,6 +497,7 @@
         this.uniqueId = _uniqueId++|0;
         this.version = 1;
         this.doubled = 0;  // 0 - normal, 1 - width, 3 - height top, 4 - height bottom
+        this.overflow = 0;
         this.cells = [];
         for (var i=0; i<length; ++i) {
             //this.cells.push(tchar.clone()); // to slow?
@@ -972,7 +973,7 @@
     function TScreen(cols, rows, scrollLength) {
         this.rows = rows;
         this.cols = cols;
-        this.scrollLength = scrollLength | 0;
+        this.scrollLength = (scrollLength==Infinity) ? 2147483647 : (scrollLength|0);
 
         this.buffer = [];
         this.scrollbuffer = [];
@@ -1105,6 +1106,86 @@
         this.cols = cols;
     };
 
+    // experimental resize with line wrapping reflow
+    // TODO: make less expensive
+    TScreen.prototype.resize_reflow = function(cols, rows, cursor) {
+        var line = 0, cell = 0, tchar = null;
+
+        // build temp array with overflown lines merged
+        var temp_ar = [[]];
+        var a_line = temp_ar[temp_ar.length - 1];
+        for (line=0; line<this.scrollbuffer.length; ++line) {
+            for (cell=0; cell<this.cols; ++cell) {
+                tchar = this.scrollbuffer[line].cells[cell];
+                a_line.push(tchar);
+            }
+            if (!this.scrollbuffer[line].overflow) {
+                temp_ar.push([]);
+                a_line = temp_ar[temp_ar.length - 1];
+            }
+        }
+        for (line=0; line<this.rows; ++line) {
+            for (cell=0; cell<this.cols; ++cell) {
+                tchar = this.buffer[line].cells[cell];
+                a_line.push(tchar);
+            }
+            if (!this.buffer[line].overflow) {
+                temp_ar.push([]);
+                a_line = temp_ar[temp_ar.length - 1];
+            }
+        }
+
+        // right trim temp
+        for (var i=0; i<temp_ar.length; ++i) {
+            var right = temp_ar[i].pop();
+            while (right && right.c =='' && right.width==1)
+                right = temp_ar[i].pop();
+            if (right && right.c !='')
+                temp_ar[i].push(right);
+        }
+
+        // bottom trim temp
+        var bottom = temp_ar.pop();
+        while (bottom && !bottom.length)
+            bottom = temp_ar.pop();
+        if (bottom)
+            temp_ar.push(bottom);
+
+        // transfer data
+        var final_buffer = [];
+        for (line=0; line<temp_ar.length; ++line) {
+            var trow = new TRow(cols, new TChar(''));
+            var offset = 0;
+            for (cell=0; cell<temp_ar[line].length; ++cell) {
+                if (parseInt(cell/cols)>offset) {
+                    offset++;
+                    trow.overflow = 1;
+                    final_buffer.push(trow);
+                    trow = new TRow(cols, new TChar(''));
+                }
+                trow.cells[cell%cols] = temp_ar[line][cell];
+            }
+            final_buffer.push(trow);
+            trow = new TRow(cols, new TChar(''));
+        }
+
+        // adjust final buffer and scrollbuffer
+        this.scrollbuffer = [];
+        while (final_buffer.length<rows)
+            final_buffer.push(new TRow(cols, new TChar('')));
+        while (final_buffer.length>rows)
+            this.appendToScrollBuffer(final_buffer.shift());
+
+        this.buffer = final_buffer;
+        if (cursor.row >= rows)
+            cursor.row = rows - 1;
+        if (cursor.col >= cols)
+            cursor.col = cols - 1;
+
+        this.rows = rows;
+        this.cols = cols;
+    };
+
     /** minimal support for switching charsets (only basic drawing symbols supported) */
     // see http://www.vt100.net/charsets/technical.html for technical charset
     var CHARSET_0 = {
@@ -1174,7 +1255,7 @@
     function AnsiTerminal(cols, rows, scrollLength) {
         this.rows = rows;
         this.cols = cols;
-        this.scrollLength = scrollLength | 0;
+        this.scrollLength = (scrollLength===Infinity) ? 2147483647 : (scrollLength|0);
         this.send = function (s) {};                            // callback for writing back to stream
         this.beep = function (tone, duration) {};               // callback for sending console beep
         this.changedMouseHandling = function(mode, protocol){}; // announce changes in mouse handling
@@ -1234,6 +1315,9 @@
         this.G1 = null;
         this.charset = this.G0;
         this.active_charset = 0;
+
+        // resize settings
+        this.reflow = false;  // experimental
     };
 
     /**
@@ -1259,15 +1343,17 @@
      * @method module:node-ansiterminal.AnsiTerminal#resize
      */
     AnsiTerminal.prototype.resize = function(cols, rows) {
+        var resize_func = (this.reflow) ? 'resize_reflow' : 'resize';
+
         // skip insane values
         if ((cols < 2) || (rows < 2))
             return false;
         
         // normal scroll buffer
-        this.normal_screen.resize(cols, rows, this.normal_cursor);
+        this.normal_screen[resize_func](cols, rows, this.normal_cursor);
         
         // alternative buffer
-        this.alternate_screen.resize(cols, rows, this.alternate_cursor);
+        this.alternate_screen[resize_func](cols, rows, this.alternate_cursor);
         
         // set new rows / cols to terminal
         this.rows = rows;
@@ -1281,12 +1367,29 @@
             this.DECSC();
     };
 
+    /**
+     * Register a DCS handler for `flag` and `collected`.
+     * The handler must follow the DCS "interface" with a `hook`, `feed` and
+     * `unhook` method (see {@link module:node-ansiterminal.DCS_Dummy}).
+     *
+     * @param {function} handler
+     * @param {string} collected
+     * @param {string} flag
+     * @method module:node-ansiterminal.AnsiTerminal#registerDCSHandler
+     */
     AnsiTerminal.prototype.registerDCSHandler = function(handler, collected, flag) {
         this.dcs_handlers[flag+collected] = handler;
     };
+
+    /**
+     * Unregister a DCS handler.
+     *
+     * @param {function} handler    - previously registered handler
+     * @method module:node-ansiterminal.AnsiTerminal#unregisterDCSHandler
+     */
     AnsiTerminal.prototype.unregisterDCSHandler = function(handler) {
         for (var prop in this.dcs_handlers) {
-            if (this.dcs_handlers.hasOwnProperty(prop) && this.dcs_handlers[prop] == handler) {
+            if (this.dcs_handlers.hasOwnProperty(prop) && this.dcs_handlers[prop] === handler) {
                 delete this.dcs_handlers[prop];
                 break;
             }
@@ -1350,6 +1453,7 @@
 
             if (this.wrap && width) {
                 this.cursor.col = 0;
+                this.screen.buffer[this.cursor.row].overflow = 1;  // mark line as overflown
                 this.cursor.row++;
                 this.wrap = false;
             }
@@ -1465,6 +1569,7 @@
         this.wrap = false;
         switch (flag) {
             case '\n':
+                this.screen.buffer[this.cursor.row].overflow = 0;
                 this.cursor.row++;
                 if (this.cursor.row >= this.scrolling_bottom) {
                     this.SU();
@@ -2631,6 +2736,11 @@
 
     /**
      * DCS dummy handler
+     *
+     * This is a dummy for a dcs handler. It handles all DCS sequences that have no
+     * real implementation.
+     *
+     * @function module:node-ansiterminal.DCS_Dummy
      */
     function DCS_Dummy() {
         return new (function() {
@@ -2645,13 +2755,16 @@
         })();
     }
 
-    // http://www.vt100.net/docs/vt510-rm/DECRQSS.html
     /**
      * DECRQSS - Request Selection or Setting - DCS $ q D..D ST
      *
-     * Difference to DEC specification - P1 for valid, P0 for invalid requests
+     * DCS handler for DECRQSS. Currently only SGR and DECSTBM reports are fully implemented.
+     *
+     * Difference to DEC specification - P1 for valid, P0 for invalid request
+     * (following the xterm scheme)
      *
      * @see {@link http://www.vt100.net/docs/vt510-rm/DECRQSS.html}
+     * @function module:node-ansiterminal.DCS_DECRQSS
      */
     function DCS_DECRQSS() {
         return new (function () {

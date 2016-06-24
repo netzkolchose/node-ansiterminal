@@ -27,16 +27,21 @@ var ptyterm = pty.spawn('bash', [], {
 });
 
 // create terminal emulator and parser
-var terminal = new AnsiTerminal(COLS, ROWS);
-//terminal.debug = true;
+var terminal = new AnsiTerminal(COLS, ROWS, 50000);
+terminal.debug = true;
 var parser = new AnsiParser(terminal);
 
 function printTerminal() {
     process.stdout.write('\x1b[2;2H');
+    var debug_out = '';
     for (var i=0; i<terminal.screen.buffer.length; ++i) {
         process.stdout.write(terminal.screen.buffer[i].toEscapeString({rtrim:false, empty_cell: ' '}));
         process.stdout.write('\x1b[B\x1b[2G');
+        debug_out += terminal.screen.buffer[i].toEscapeString({rtrim:true, empty_cell: ' '});
+        if (!terminal.screen.buffer[i].overflow)
+            debug_out += '\n';
     }
+    console.log(debug_out);
 }
 
 // parse data from pseudoterminal and write to terminal
