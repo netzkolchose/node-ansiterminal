@@ -2540,6 +2540,9 @@
                 // clear line up to cursor
                 this.EL([1]);
                 break;
+            case 3:
+                // complete display and scroll buffer
+                this.screen.scrollbuffer = [];
             case 2:
                 // complete display
                 for (i = 0; i < this.rows; ++i) {
