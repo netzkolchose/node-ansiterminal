@@ -1124,14 +1124,22 @@
                 a_line = temp_ar[temp_ar.length - 1];
             }
         }
+
+        // calculate the cursor row in terms of the temp array
+        // will be relative to the start of the scrollbuffer (not the screen buffer)
+        var newCursorRow = temp_ar.length - 1;
         for (line=0; line<this.rows; ++line) {
             for (cell=0; cell<this.cols; ++cell) {
                 tchar = this.buffer[line].cells[cell];
                 a_line.push(tchar);
             }
+
             if (!this.buffer[line].overflow) {
                 temp_ar.push([]);
                 a_line = temp_ar[temp_ar.length - 1];
+                if (line < cursor.row) {
+                    newCursorRow++;
+                }
             }
         }
 
@@ -1154,16 +1162,32 @@
         // transfer data
         var final_buffer = [];
         for (line=0; line<temp_ar.length; ++line) {
+            var colsLimit = cols;
+            // bash will send us commands to resize/rewrite the line our cursor is on
+            // our job is to keep the cursor line the same size as before
+            if (final_buffer.length == newCursorRow) {
+                // colsLimit will let us copy data to the final buffer into the same # of columns as before
+                colsLimit = this.cols;
+            }
+
             var trow = new TRow(cols, new TChar(''));
             var offset = 0;
             for (cell=0; cell<temp_ar[line].length; ++cell) {
-                if (parseInt(cell/cols)>offset) {
+                if (parseInt(cell/colsLimit)>offset) {
+                    if (final_buffer.length <= newCursorRow) {
+                        // each overflown line pushes cursor row down
+                        newCursorRow++;
+                    }
                     offset++;
                     trow.overflow = 1;
                     final_buffer.push(trow);
                     trow = new TRow(cols, new TChar(''));
                 }
-                trow.cells[cell%cols] = temp_ar[line][cell];
+                // copying using the old # of columns might not be possible if new # columns is smaller
+                // in that case, truncate the extra cells
+                if (cell%colsLimit < trow.cells.length) {
+                    trow.cells[cell%colsLimit] = temp_ar[line][cell];
+                }
             }
             final_buffer.push(trow);
             trow = new TRow(cols, new TChar(''));
@@ -1177,10 +1201,8 @@
             this.appendToScrollBuffer(final_buffer.shift());
 
         this.buffer = final_buffer;
-        if (cursor.row >= rows)
-            cursor.row = rows - 1;
-        if (cursor.col >= cols)
-            cursor.col = cols - 1;
+        // newCursorRow is relative to the start of the scrollbuffer, make it relative to the screen buffer
+        cursor.row = newCursorRow - this.scrollbuffer.length;
 
         this.rows = rows;
         this.cols = cols;
@@ -1258,7 +1280,12 @@
         this.scrollLength = (scrollLength===Infinity) ? 2147483647 : (scrollLength|0);
         this.send = function (s) {};                            // callback for writing back to stream
         this.beep = function (tone, duration) {};               // callback for sending console beep
+        this.debug = false;
+        this.printUnhandled = true;
         this.changedMouseHandling = function(mode, protocol){}; // announce changes in mouse handling
+
+        // resize settings
+        this.reflow = false;  // experimental
 
         this.reset();
     }
@@ -1315,9 +1342,6 @@
         this.G1 = null;
         this.charset = this.G0;
         this.active_charset = 0;
-
-        // resize settings
-        this.reflow = false;  // experimental
     };
 
     /**
@@ -1552,7 +1576,7 @@
         this.wrap = false;
         if (s.charAt(0) == '0')
             this.title = s.slice(2);
-        else
+        else if (this.printUnhandled)
             console.log('inst_o unhandled:', s);
     };
 
@@ -1602,12 +1626,19 @@
                 this.charset = this.G0;
                 this.active_charset = 0;
                 break;
-            case '\x11':  console.log('unhandled DC1 (XON)'); break;  // TODO
+            case '\x11':
+                if (this.printUnhandled)
+                    console.log('unhandled DC1 (XON)');
+                break;  // TODO
             case '\x12':  break;  // DC2
-            case '\x13':  console.log('unhandled DC3 (XOFF)'); break; // TODO
+            case '\x13':
+                if (this.printUnhandled)
+                    console.log('unhandled DC3 (XOFF)');
+                break; // TODO
             case '\x14':  break;  // DC4
             default:
-                console.log('inst_x unhandled:', flag.charCodeAt(0));
+                if (this.printUnhandled)
+                    console.log('inst_x unhandled:', flag.charCodeAt(0));
         }
     };
 
@@ -1664,7 +1695,8 @@
                     case 'u':  return this.DECRC();
                     case '`':  return this.HPA(params);
                     default :
-                        console.log('inst_c unhandled:', collected, params, flag);
+                        if (this.printUnhandled)
+                            console.log('inst_c unhandled:', collected, params, flag);
                 }
                 break;
             case '?':
@@ -1675,25 +1707,29 @@
                     case 'l':  return this.low(collected, params);
                     case 'n':  return this.DSR(collected, params);
                     default :
-                        console.log('inst_c unhandled:', collected, params, flag);
+                        if (this.printUnhandled)
+                            console.log('inst_c unhandled:', collected, params, flag);
                 }
                 break;
             case '>':
                 switch (flag) {
                     case 'c':  return this.send(TERM_STRING['CSI'] + '>41;1;0c');  // DA2
                     default :
-                        console.log('inst_c unhandled:', collected, params, flag);
+                        if (this.printUnhandled)
+                            console.log('inst_c unhandled:', collected, params, flag);
                 }
                 break;
             case '!':
                 switch (flag) {
                     case 'p':  return this.DECSTR();
                     default :
-                        console.log('inst_c unhandled:', collected, params, flag);
+                        if (this.printUnhandled)
+                            console.log('inst_c unhandled:', collected, params, flag);
                 }
                 break;
             default :
-                console.log('inst_c unhandled:', collected, params, flag);
+                if (this.printUnhandled)
+                    console.log('inst_c unhandled:', collected, params, flag);
         }
     };
 
@@ -1742,7 +1778,9 @@
                 //case '|':  // Invoke the G3 Character Set as GR (LS3R). - not supported
                 //case '}':  // Invoke the G2 Character Set as GR (LS2R). - not supported
                 //case '~':  // Invoke the G1 Character Set as GR (LS1R). - not supported
-                default :  console.log('inst_e unhandled:', collected, flag);
+                default :
+                    if (this.printUnhandled)
+                        console.log('inst_e unhandled:', collected, flag);
             }
         } else if (collected == ' ') {
             switch (flag) {
@@ -1751,7 +1789,9 @@
                 //case 'L':  // (SP) Set ANSI conformance level 1 (dpANS X3.134.1) - not supported
                 //case 'M':  // (SP) Set ANSI conformance level 2 (dpANS X3.134.1) - not supported
                 //case 'N':  // (SP) Set ANSI conformance level 3 (dpANS X3.134.1) - not supported
-                default :  console.log('inst_e unhandled:', collected, flag);
+                default :
+                    if (this.printUnhandled)
+                        console.log('inst_e unhandled:', collected, flag);
             }
         } else if (collected == '#') {
             switch (flag) {
@@ -1760,7 +1800,9 @@
                 case '5':  return this.DECSWL();  // (#) DEC single-width line (DECSWL)
                 case '6':  return this.DECDWL();  // (#) DEC double-width line (DECDWL)
                 case '8':  return this.DECALN();  // (#) DEC Screen Alignment Test (DECALN)
-                default :  console.log('inst_e unhandled:', collected, flag);
+                default :
+                    if (this.printUnhandled)
+                        console.log('inst_e unhandled:', collected, flag);
             }
         } else if (collected == '%') {
             switch (flag) {
@@ -1788,7 +1830,7 @@
             }
             if (this.active_charset == 1)
                 this.charset = this.G1;
-        } else {
+        } else if (this.printUnhandled) {
             console.log('inst_e unhandled:', collected, flag);
         }
     };
@@ -2231,25 +2273,25 @@
                 case    4:
                     if (!collected)                                 // IRM
                         this.insert_mode = true;
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);  // DECSCLM??
                     break;
                 case    7:
                     if (collected == '?')
                         this.autowrap = true;                       // DECAWM (should be default?)
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   12:
                     if (collected == '?')
                         this.blinking_cursor = true;
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   20:
                     if (!collected)
                         this.newline_mode = true;                   // LNM
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   25:  this.show_cursor = true; break;         // DECTCEM (default)
@@ -2292,7 +2334,8 @@
                     this.cursor = this.alternate_cursor;
                     break;
                 default:
-                    console.log('unhandled high', collected, params[i]);
+                    if (this.printUnhandled)
+                        console.log('unhandled high', collected, params[i]);
             }
         }
     };
@@ -2305,25 +2348,25 @@
                 case    4:
                     if (!collected)                                  // IRM (default)
                         this.insert_mode = false;
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled low', collected, params[i]);
                     break;
                 case    7:
                     if (collected == '?')
                         this.autowrap = false;                       // DECAWM (default)
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   12:
                     if (collected == '?')
                         this.blinking_cursor = false;
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   20:
                     if (!collected)
                         this.newline_mode = false;                   // LNM (default)
-                    else
+                    else if (this.printUnhandled)
                         console.log('unhandled high', collected, params[i]);
                     break;
                 case   25:  this.show_cursor = false; break;         // DECTCEM
@@ -2353,7 +2396,8 @@
                     this.cursor = this.normal_cursor;
                     break;
                 default:
-                    console.log('unhandled low', collected, params[i]);
+                    if (this.printUnhandled)
+                        console.log('unhandled low', collected, params[i]);
             }
         }
     };
@@ -2373,7 +2417,8 @@
                 this.send(TERM_STRING['CSI'] + '?70n');
                 break;
             default:
-                console.log('unhandled DSR', collected, params);
+                if (this.printUnhandled)
+                    console.log('unhandled DSR', collected, params);
         }
     };
 
@@ -2495,6 +2540,9 @@
                 // clear line up to cursor
                 this.EL([1]);
                 break;
+            case 3:
+                // complete display and scroll buffer
+                this.screen.scrollbuffer = [];
             case 2:
                 // complete display
                 for (i = 0; i < this.rows; ++i) {
@@ -2587,7 +2635,8 @@
                             break;
                         default:
                             // unkown mode identifier, breaks ext_color mode
-                            console.log('sgr unknown extended color mode:', ext_colors[1]);
+                            if (this.printUnhandled)
+                                console.log('sgr unknown extended color mode:', ext_colors[1]);
                             ext_colors = 0;
                     }
                     continue;
@@ -2712,7 +2761,8 @@
                     attr = (attr & -33554688) | 16777216 | params[i]%10|8;
                     break;
                 default:
-                    console.log('sgr unknown:', params[i]);
+                    if (this.printUnhandled)
+                        console.log('sgr unknown:', params[i]);
             }
         }
         
@@ -2745,10 +2795,12 @@
     function DCS_Dummy() {
         return new (function() {
             this.hook = function (term, collected, params, flag) {
-                console.log('inst_H unhandled:', collected, params, flag);
+                if (this.printUnhandled)
+                    console.log('inst_H unhandled:', collected, params, flag);
             };
             this.feed = function (data) {
-                console.log('inst_P unhandled:', data);
+                if (this.printUnhandled)
+                    console.log('inst_P unhandled:', data);
             };
             this.unhook = function () {
             };
